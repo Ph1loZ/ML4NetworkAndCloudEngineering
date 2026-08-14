@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CNN Tuning - จูนพารามิเตอร์แว่นขยาย AI</title>
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --secondary: #6366f1;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --pad: #cbd5e1; /* Grey for padding */
+            --img: #3b82f6; /* Blue for original image */
+            --out: #f97316; /* Orange for output */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 25px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1100px;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            flex: 1;
+            min-width: 320px;
+            max-width: 400px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .param-group {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+        }
+
+        .param-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .param-desc {
+            font-size: 0.85rem;
+            color: #475569;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        select {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            outline: none;
+            cursor: pointer;
+            font-size: 1rem;
+            color: #1e293b;
+        }
+
+        .formula-box {
+            background: #eff6ff;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px dashed #bfdbfe;
+        }
+        
+        .formula-box h3 { margin: 0 0 10px 0; font-size: 1rem; color: #1e3a8a; }
+        .math-eq { font-family: monospace; font-size: 1.2rem; font-weight: bold; color: var(--secondary); }
+
+        /* Visualization Panel */
+        .plot-panel {
+            flex: 1.5;
+            min-width: 500px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .visual-area {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin-top: 20px;
+            gap: 20px;
+        }
+
+        .grid-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .grid-title {
+            font-weight: bold;
+            color: #475569;
+        }
+
+        .grid-container {
+            display: grid;
+            gap: 2px;
+            background: #94a3b8;
+            border: 2px solid #64748b;
+            padding: 2px;
+        }
+
+        .cell {
+            width: 25px;
+            height: 25px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 0.7rem;
+            font-weight: bold;
+            color: rgba(255,255,255,0.7);
+        }
+
+        .cell.img { background-color: var(--img); }
+        .cell.pad { background-color: var(--pad); color: #64748b; }
+        .cell.out { background-color: var(--out); }
+
+        .arrow {
+            font-size: 2rem;
+            color: #cbd5e1;
+            font-weight: bold;
+        }
+
+        .feedback-box {
+            margin-top: 30px;
+            padding: 15px;
+            background: #fdf2f8;
+            border-left: 4px solid var(--primary);
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+            color: #1e3a8a;
+            line-height: 1.6;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>⚙️ จูนพารามิเตอร์ CNN (Convolutional Neural Network)</h1>
+    <div class="subtitle">
+        สิ่งที่กำหนดว่า "สมองส่วนวิเคราะห์ภาพ" จะทำงานอย่างไร ขึ้นอยู่กับ 3 พารามิเตอร์หลัก: <b>Filter Size, Stride, และ Padding</b><br>
+        ลองปรับค่าต่างๆ เพื่อดูว่า "ขนาดของภาพ" เปลี่ยนแปลงไปอย่างไรหลังจากการสแกน!
+    </div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            
+            <div class="param-group">
+                <div class="param-header"><span>1. Filter Size (K)</span></div>
+                <div class="param-desc">
+                    <strong>ขนาดของแว่นขยาย:</strong><br>
+                    - <b>3x3:</b> มาตรฐานยอดฮิต เก็บรายละเอียดเล็กๆ ได้ดี<br>
+                    - <b>5x5:</b> แว่นขยายใหญ่ขึ้น มองเห็นภาพรวมได้กว้างขึ้น
+                </div>
+                <select id="sel-filter" onchange="updateCNN()">
+                    <option value="3" selected>3x3 (รายละเอียดสูง)</option>
+                    <option value="5">5x5 (มุมมองกว้าง)</option>
+                </select>
+            </div>
+
+            <div class="param-group">
+                <div class="param-header"><span>2. Stride (S)</span></div>
+                <div class="param-desc">
+                    <strong>ก้าวเดินของการสแกน:</strong><br>
+                    - <b>Stride = 1:</b> ขยับทีละช่อง ค่อยๆ สแกน (ภาพ Output จะใหญ่)<br>
+                    - <b>Stride = 2:</b> ขยับกระโดดทีละ 2 ช่อง เพื่อย่อขนาดภาพให้เล็กลงเร็วๆ (ลดภาระคอมพิวเตอร์)
+                </div>
+                <select id="sel-stride" onchange="updateCNN()">
+                    <option value="1" selected>1 (ก้าวทีละช่อง)</option>
+                    <option value="2">2 (ก้าวกระโดดข้าม)</option>
+                </select>
+            </div>
+
+            <div class="param-group">
+                <div class="param-header"><span>3. Padding (P)</span></div>
+                <div class="param-desc">
+                    <strong>การเสริมขอบภาพ:</strong><br>
+                    - <b>Valid (ไม่มีเสริมขอบ):</b> สแกนเฉพาะพื้นที่ด้านใน ทำให้ข้อมูลตรงขอบภาพหายไป และภาพเล็กลง<br>
+                    - <b>Same (เสริมขอบด้วย 0):</b> เติมกรอบหลอกๆ เข้าไป เพื่อรักษาข้อมูลริมขอบภาพไว้
+                </div>
+                <select id="sel-padding" onchange="updateCNN()">
+                    <option value="valid" selected>Valid (ไม่เสริมขอบ - ปล่อยภาพเล็กลง)</option>
+                    <option value="same">Same (เสริมขอบ - เพื่อรักษารายละเอียดขอบ)</option>
+                </select>
+            </div>
+
+            <div class="formula-box">
+                <h3>สมการคำนวณขนาดภาพ Output</h3>
+                <div class="math-eq" id="math-eq">O = [(7 + 2(0) - 3) / 1] + 1 = 5</div>
+            </div>
+
+        </div>
+
+        <!-- Visualization Panel -->
+        <div class="plot-panel">
+            <h2 style="margin-top: 0; text-align: center; color: var(--secondary);">เปรียบเทียบขนาดภาพ (Input vs Output)</h2>
+            <div style="text-align: center; color: #64748b; font-size: 0.9rem;">(สมมติภาพต้นฉบับมีขนาด 7x7 พิกเซล)</div>
+            
+            <div class="visual-area">
+                <!-- Input Grid -->
+                <div class="grid-box">
+                    <div class="grid-title" id="title-in">Input (7x7)</div>
+                    <div class="grid-container" id="grid-in"></div>
+                </div>
+
+                <div class="arrow">➡️</div>
+
+                <!-- Output Grid -->
+                <div class="grid-box">
+                    <div class="grid-title" id="title-out">Output (5x5)</div>
+                    <div class="grid-container" id="grid-out"></div>
+                </div>
+            </div>
+
+            <div class="feedback-box" id="feedback-box">
+                กำลังวิเคราะห์...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const inputSize = 7; // Fixed input size 7x7
+
+        function drawGrid(containerId, totalSize, padSize, type) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            container.style.gridTemplateColumns = `repeat(${totalSize}, 25px)`;
+            container.style.gridTemplateRows = `repeat(${totalSize}, 25px)`;
+
+            for (let r = 0; r < totalSize; r++) {
+                for (let c = 0; c < totalSize; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    
+                    if (type === 'input') {
+                        // เช็คว่าเป็นพื้นที่ Padding หรือ Image ปกติ
+                        if (r < padSize || r >= totalSize - padSize || c < padSize || c >= totalSize - padSize) {
+                            cell.classList.add('pad');
+                            cell.innerText = '0';
+                        } else {
+                            cell.classList.add('img');
+                        }
+                    } else if (type === 'output') {
+                        cell.classList.add('out');
+                    }
+                    
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        function updateCNN() {
+            const K = parseInt(document.getElementById('sel-filter').value);
+            const S = parseInt(document.getElementById('sel-stride').value);
+            const padMode = document.getElementById('sel-padding').value;
+
+            // Calculate Padding Value
+            let P = 0;
+            if (padMode === 'same') {
+                P = Math.floor(K / 2); // For K=3 -> P=1, K=5 -> P=2
+            }
+
+            // Calculate Output Size
+            // Formula: O = Math.floor((I + 2P - K) / S) + 1
+            const topPart = inputSize + (2 * P) - K;
+            const O = Math.floor(topPart / S) + 1;
+
+            // Update Math Formula UI
+            document.getElementById('math-eq').innerText = `O = ⌊(7 + 2(${P}) - ${K}) / ${S}⌋ + 1 = ${O}`;
+
+            // Draw Grids
+            const totalInputSize = inputSize + (2 * P);
+            drawGrid('grid-in', totalInputSize, P, 'input');
+            drawGrid('grid-out', O, 0, 'output');
+
+            // Update Titles
+            document.getElementById('title-in').innerText = `Input (7x7) ${P > 0 ? '+ Padding' : ''}`;
+            document.getElementById('title-out').innerText = `Feature Map (${O}x${O})`;
+
+            // Generate Feedback
+            let fb = [];
+            
+            if (padMode === 'same') {
+                fb.push("🛡️ <b>การทำงานของ Padding (Same):</b> สังเกตว่ามีกรอบสีเทา (เลข 0) ล้อมรอบภาพสีน้ำเงิน! การเติมกรอบนี้จะช่วยให้แว่นขยายสามารถสแกนโดนพิกเซลริมขอบภาพได้เต็มที่ ข้อมูลริมภาพจึงไม่สูญหาย");
+            } else {
+                fb.push("✂️ <b>การทำงานของ Padding (Valid):</b> ไม่มีการเติมกรอบสีเทา แว่นขยายจึงสแกนได้แค่พื้นที่ด้านใน ทำให้ขอบภาพดั้งเดิมโดนตัดทิ้งไป ภาพ Output จึงมีขนาดเล็กลง");
+            }
+
+            if (S === 2) {
+                fb.push("🏃‍♂️ <b>ผลของ Stride = 2:</b> ภาพ Output เล็กลงอย่างรวดเร็ว (Downsampling)! การก้าวกระโดดแบบนี้ AI นิยมใช้เพื่อย่อขนาดข้อมูลให้วิเคราะห์ได้เร็วขึ้น โดยยังคงจุดเด่นหลักๆ ของภาพไว้ได้");
+            }
+
+            if (K === 5) {
+                fb.push("🔍 <b>ผลของ Filter 5x5:</b> การใช้แว่นขยายขนาดใหญ่จะทำให้ภาพ Output หดตัวลงเร็วกว่า 3x3 (ถ้าไม่มี Padding) เพราะมันต้องการพื้นที่ในการทาบแว่นขยายมากขึ้น");
+            }
+
+            const fbBox = document.getElementById('feedback-box');
+            fbBox.innerHTML = fb.join("<br><br>");
+            fbBox.style.backgroundColor = '#eff6ff';
+            fbBox.style.borderLeftColor = 'var(--primary)';
+        }
+
+        // Init
+        updateCNN();
+    </script>
+</body>
+</html>
