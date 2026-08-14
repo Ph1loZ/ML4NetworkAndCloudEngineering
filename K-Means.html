@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Means Clustering Game - เกมจัดกลุ่มข้อมูล</title>
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --secondary: #6366f1;
+            --success: #10b981;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --border: #cbd5e1;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1100px;
+            justify-content: center;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            flex: 1;
+            min-width: 320px;
+            max-width: 350px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .param-group {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+        }
+
+        .param-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+        button:hover { transform: scale(1.02); }
+        button:disabled { background-color: #94a3b8 !important; cursor: not-allowed; transform: none; opacity: 0.7;}
+
+        .btn-init { background-color: #3b82f6; color: white; }
+        .btn-step1 { background-color: #f59e0b; color: white; }
+        .btn-step2 { background-color: #10b981; color: white; }
+        .btn-auto { background-color: #ec4899; color: white; margin-top: 10px;}
+
+        /* Plot Panel */
+        .plot-panel {
+            flex: 2;
+            min-width: 500px;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            padding: 20px;
+            border: 2px solid var(--border);
+            display: flex;
+            flex-direction: column;
+        }
+
+        canvas {
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            width: 100%;
+            height: 450px;
+        }
+
+        .status-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #eff6ff;
+            border-left: 5px solid var(--primary);
+            border-radius: 0 8px 8px 0;
+            font-size: 1rem;
+            color: #1e3a8a;
+            line-height: 1.5;
+            min-height: 60px;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: #475569;
+        }
+        .legend span { display: flex; align-items: center; gap: 5px; }
+
+    </style>
+</head>
+<body>
+
+    <h1>🎯 K-Means: ศิลปะแห่งการจัดกลุ่ม (Clustering)</h1>
+    <div class="subtitle">
+        AI ไม่รู้ล่วงหน้าว่าข้อมูลคืออะไร แต่มันสามารถหา <b>"กลุ่มที่มีลักษณะคล้ายกัน"</b> ได้เอง!<br>
+        ลองกดปุ่มทำงานทีละขั้นตอน เพื่อดูว่า AI ขยับ <b>จุดศูนย์กลาง (Centroid)</b> เพื่อจับกลุ่มข้อมูลอย่างไร
+    </div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            
+            <div class="param-group">
+                <div class="param-header">
+                    <span>จำนวนกลุ่ม K (Clusters)</span>
+                    <span id="val-k" style="color: var(--primary);">3</span>
+                </div>
+                <div style="font-size: 0.85rem; color: #64748b; margin-bottom: 10px;">
+                    เราต้องการแบ่งข้อมูลออกเป็นกี่กลุ่ม?
+                </div>
+                <input type="range" id="slide-k" min="2" max="5" value="3" oninput="changeK()">
+            </div>
+
+            <button onclick="generateData()" style="background: #e2e8f0; color: #475569;">
+                🎲 1. สุ่มสร้างข้อมูลใหม่
+            </button>
+
+            <hr style="width: 100%; border: 0; border-top: 1px dashed var(--border); margin: 5px 0;">
+
+            <button class="btn-init" id="btn-init" onclick="initCentroids()">
+                ⭐ 2. วางจุดศูนย์กลาง (Centroids)
+            </button>
+            <button class="btn-step1" id="btn-assign" onclick="assignPoints()" disabled>
+                🎨 3. จัดกลุ่มข้อมูล (Assign)
+            </button>
+            <button class="btn-step2" id="btn-update" onclick="updateCentroids()" disabled>
+                🚚 4. ย้ายจุดศูนย์กลาง (Update)
+            </button>
+
+            <button class="btn-auto" id="btn-auto" onclick="autoRun()" disabled>
+                🤖 ทำงานอัตโนมัติจนเสร็จ
+            </button>
+
+        </div>
+
+        <!-- Plot Panel -->
+        <div class="plot-panel">
+            <div class="legend">
+                <span><div style="width: 12px; height: 12px; border-radius: 50%; background: #94a3b8;"></div> ข้อมูลดิบ</span>
+                <span><b style="font-size: 1.2rem; color: #1e293b;">⭐</b> จุดศูนย์กลาง (Centroid)</span>
+            </div>
+            
+            <canvas id="kmeansCanvas" width="600" height="450"></canvas>
+            
+            <div class="status-box" id="status-box">
+                <b>ยินดีต้อนรับ!</b> เลือกจำนวนกลุ่ม K ที่ต้องการ แล้วกด <b>"สุ่มสร้างข้อมูลใหม่"</b> เพื่อเริ่มเรียนรู้ครับ
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById('kmeansCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        // สีสำหรับแต่ละ Cluster (K สูงสุดคือ 5)
+        const clusterColors = ['#ef4444', '#3b82f6', '#10b981', '#f59e0b', '#8b5cf6'];
+        
+        let dataPoints = [];
+        let centroids = [];
+        let currentStep = 'START'; // START, INIT, ASSIGN, UPDATE, DONE
+        let k = 3;
+        let animationTimer = null;
+
+        function updateUI() {
+            document.getElementById('val-k').innerText = k;
+            const btnInit = document.getElementById('btn-init');
+            const btnAssign = document.getElementById('btn-assign');
+            const btnUpdate = document.getElementById('btn-update');
+            const btnAuto = document.getElementById('btn-auto');
+            const statusBox = document.getElementById('status-box');
+
+            // Reset buttons
+            btnInit.disabled = true;
+            btnAssign.disabled = true;
+            btnUpdate.disabled = true;
+            btnAuto.disabled = true;
+
+            if (currentStep === 'START') {
+                btnInit.disabled = false;
+                statusBox.innerHTML = `<b>ขั้นตอนที่ 1:</b> ข้อมูลกระจัดกระจายอยู่ เรายังไม่รู้ว่าใครอยู่กลุ่มไหน<br>ให้กดปุ่ม <b>"วางจุดศูนย์กลาง"</b> เพื่อเริ่มต้นอัลกอริทึม`;
+            } else if (currentStep === 'INIT' || currentStep === 'UPDATE') {
+                btnAssign.disabled = false;
+                btnAuto.disabled = false;
+                if(currentStep === 'INIT') {
+                    statusBox.innerHTML = `<b>ขั้นตอนที่ 2:</b> AI สุ่มวางดาว ⭐ (Centroids) ลงไป ${k} ดวงมั่วๆ <br>ต่อไปให้กด <b>"จัดกลุ่มข้อมูล"</b> เพื่อให้จุดข้อมูลวิ่งไปหาดาวที่อยู่ใกล้ที่สุด`;
+                } else {
+                    statusBox.innerHTML = `<b>จุดศูนย์กลางขยับแล้ว!</b> ตำแหน่งเปลี่ยนไป ระยะทางก็เปลี่ยน <br>กด <b>"จัดกลุ่มข้อมูล"</b> อีกครั้งเพื่อเช็คว่ามีจุดไหนเปลี่ยนใจย้ายกลุ่มหรือไม่`;
+                }
+            } else if (currentStep === 'ASSIGN') {
+                btnUpdate.disabled = false;
+                btnAuto.disabled = false;
+                statusBox.innerHTML = `<b>ขั้นตอนที่ 3:</b> ข้อมูลถูกระบายสีตามดาวที่อยู่ใกล้ที่สุดแล้ว!<br>ต่อไปกด <b>"ย้ายจุดศูนย์กลาง"</b> เพื่อขยับดาวไปอยู่ <i>ตรงกลาง (ค่าเฉลี่ย)</i> ของกลุ่มสีตัวเอง`;
+            } else if (currentStep === 'DONE') {
+                btnInit.disabled = false;
+                statusBox.innerHTML = `🏆 <b>จัดกลุ่มสำเร็จ (Converged)!</b> จุดศูนย์กลางไม่ขยับอีกแล้ว แปลว่า AI หาจุดสมดุลของข้อมูลเจอเรียบร้อย!`;
+                statusBox.style.backgroundColor = '#dcfce7';
+                statusBox.style.borderLeftColor = 'var(--success)';
+            }
+
+            if (currentStep !== 'DONE') {
+                statusBox.style.backgroundColor = '#eff6ff';
+                statusBox.style.borderLeftColor = 'var(--primary)';
+            }
+        }
+
+        function changeK() {
+            k = parseInt(document.getElementById('slide-k').value);
+            generateData();
+        }
+
+        // 1. สร้างข้อมูลดิบ (ทำให้เป็นก้อนๆ จะได้เห็นภาพชัด)
+        function generateData() {
+            clearInterval(animationTimer);
+            dataPoints = [];
+            centroids = [];
+            currentStep = 'START';
+            
+            // สร้างกลุ่มข้อมูลจำลองแบบสุ่ม 3-5 กลุ่ม
+            const numBlobs = Math.floor(Math.random() * 3) + 3; 
+            for(let i=0; i<numBlobs; i++) {
+                let cx = Math.random() * (width - 100) + 50;
+                let cy = Math.random() * (height - 100) + 50;
+                let numPts = Math.floor(Math.random() * 20) + 20; // 20-40 points per blob
+                
+                for(let j=0; j<numPts; j++) {
+                    dataPoints.push({
+                        x: cx + (Math.random() - 0.5) * 120, // Spread
+                        y: cy + (Math.random() - 0.5) * 120,
+                        cluster: -1 // Unassigned
+                    });
+                }
+            }
+            drawCanvas();
+            updateUI();
+        }
+
+        // 2. สุ่มวางจุดศูนย์กลาง (Centroids)
+        function initCentroids() {
+            centroids = [];
+            // รีเซ็ตการสีของจุดข้อมูล
+            dataPoints.forEach(p => p.cluster = -1);
+
+            for(let i=0; i<k; i++) {
+                // สุ่มเลือกตำแหน่งจากจุดข้อมูลที่มีอยู่ (เป็นวิธีที่ดีกว่าสุ่มมั่วๆ)
+                let randomPoint = dataPoints[Math.floor(Math.random() * dataPoints.length)];
+                centroids.push({
+                    x: randomPoint.x + (Math.random() * 20 - 10), // ขยับนิดหน่อย
+                    y: randomPoint.y + (Math.random() * 20 - 10),
+                    color: clusterColors[i]
+                });
+            }
+            currentStep = 'INIT';
+            drawCanvas();
+            updateUI();
+        }
+
+        // หาระยะทาง
+        function getDistance(p1, p2) {
+            return Math.sqrt(Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2));
+        }
+
+        // 3. จัดกลุ่ม (Assign Points to nearest Centroid)
+        function assignPoints() {
+            let changed = false;
+
+            dataPoints.forEach(point => {
+                let minDist = Infinity;
+                let closestCluster = -1;
+
+                centroids.forEach((centroid, index) => {
+                    let dist = getDistance(point, centroid);
+                    if (dist < minDist) {
+                        minDist = dist;
+                        closestCluster = index;
+                    }
+                });
+
+                if (point.cluster !== closestCluster) {
+                    changed = true;
+                    point.cluster = closestCluster;
+                }
+            });
+
+            // ถ้าไม่มีจุดไหนเปลี่ยนกลุ่มเลย แสดงว่าเสร็จสมบูรณ์
+            if (!changed && currentStep !== 'INIT') {
+                currentStep = 'DONE';
+            } else {
+                currentStep = 'ASSIGN';
+            }
+
+            drawCanvas();
+            updateUI();
+            return changed;
+        }
+
+        // 4. ขยับจุดศูนย์กลาง (Update Centroids)
+        function updateCentroids() {
+            let moved = false;
+
+            centroids.forEach((centroid, index) => {
+                let sumX = 0, sumY = 0, count = 0;
+
+                dataPoints.forEach(point => {
+                    if (point.cluster === index) {
+                        sumX += point.x;
+                        sumY += point.y;
+                        count++;
+                    }
+                });
+
+                if (count > 0) {
+                    let newX = sumX / count;
+                    let newY = sumY / count;
+                    
+                    // ถ้าย้ายระยะทางเกิน 1 pixel ถือว่า moved
+                    if (getDistance(centroid, {x: newX, y: newY}) > 1) {
+                        moved = true;
+                    }
+
+                    centroid.x = newX;
+                    centroid.y = newY;
+                }
+            });
+
+            if (!moved) {
+                currentStep = 'DONE';
+            } else {
+                currentStep = 'UPDATE';
+            }
+
+            drawCanvas();
+            updateUI();
+            return moved;
+        }
+
+        // โหมดอัตโนมัติ
+        function autoRun() {
+            document.getElementById('btn-auto').disabled = true;
+            document.getElementById('btn-assign').disabled = true;
+            document.getElementById('btn-update').disabled = true;
+            document.getElementById('slide-k').disabled = true;
+
+            animationTimer = setInterval(() => {
+                if (currentStep === 'DONE') {
+                    clearInterval(animationTimer);
+                    document.getElementById('slide-k').disabled = false;
+                } else if (currentStep === 'INIT' || currentStep === 'UPDATE') {
+                    assignPoints();
+                } else if (currentStep === 'ASSIGN') {
+                    updateCentroids();
+                }
+            }, 800); // ดีเลย์ 0.8 วินาทีให้ดูทัน
+        }
+
+        function drawCanvas() {
+            ctx.clearRect(0, 0, width, height);
+
+            // วาดจุดข้อมูล (Data Points)
+            dataPoints.forEach(pt => {
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
+                if (pt.cluster === -1) {
+                    ctx.fillStyle = '#94a3b8'; // สีเทา (ยังไม่จัดกลุ่ม)
+                } else {
+                    ctx.fillStyle = clusterColors[pt.cluster];
+                }
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+
+            // วาดจุดศูนย์กลาง (Centroids) เป็นรูปดาวหรือเครื่องหมายใหญ่ๆ
+            centroids.forEach((c, index) => {
+                ctx.save();
+                ctx.translate(c.x, c.y);
+                
+                // วาดเงาให้เด่นๆ
+                ctx.shadowColor = 'rgba(0,0,0,0.3)';
+                ctx.shadowBlur = 4;
+                ctx.shadowOffsetX = 2;
+                ctx.shadowOffsetY = 2;
+
+                // วาดดาว
+                ctx.beginPath();
+                for (let i = 0; i < 5; i++) {
+                    ctx.lineTo(Math.cos((18+i*72)*Math.PI/180)*15, -Math.sin((18+i*72)*Math.PI/180)*15);
+                    ctx.lineTo(Math.cos((54+i*72)*Math.PI/180)*6, -Math.sin((54+i*72)*Math.PI/180)*6);
+                }
+                ctx.closePath();
+                ctx.fillStyle = c.color;
+                ctx.fill();
+                ctx.strokeStyle = '#1e293b'; // ขอบดำให้ชัด
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                ctx.restore();
+            });
+        }
+
+        // เริ่มต้น
+        generateData();
+    </script>
+</body>
+</html>
