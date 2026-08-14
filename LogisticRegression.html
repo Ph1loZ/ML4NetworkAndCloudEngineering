@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Logistic Regression Game - เครื่องสแกนความน่าจะเป็น</title>
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --success: #10b981;
+            --danger: #ef4444;
+            --threshold: #f59e0b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1100px;
+            justify-content: center;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            flex: 1;
+            min-width: 320px;
+            max-width: 400px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .param-group {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+        }
+
+        .param-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .param-desc {
+            font-size: 0.85rem;
+            color: #475569;
+            margin-bottom: 10px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .score-box {
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+            font-weight: bold;
+            border: 2px dashed #cbd5e1;
+            background: #f8fafc;
+            transition: all 0.3s;
+        }
+
+        .score-stats {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 10px;
+            font-size: 1.1rem;
+        }
+        
+        .stat-item { display: flex; flex-direction: column; }
+        .stat-val { font-size: 1.5rem; }
+
+        /* Plot Panel */
+        .plot-panel {
+            flex: 1.5;
+            min-width: 500px;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        canvas {
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            width: 100%;
+            height: 400px;
+        }
+
+        .axis-label {
+            font-weight: bold;
+            color: #64748b;
+            font-size: 0.95rem;
+            text-align: center;
+            margin-top: 10px;
+        }
+        
+        .y-axis-label {
+            position: absolute;
+            left: -20px;
+            top: 50%;
+            transform: translateY(-50%) rotate(-90deg);
+            font-weight: bold;
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background: #eff6ff;
+            border-left: 4px solid var(--primary);
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+            color: #1e3a8a;
+            line-height: 1.6;
+        }
+
+        .btn-test {
+            width: 100%;
+            padding: 12px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: 10px;
+        }
+        .btn-test:hover { transform: scale(1.02); background-color: #7c3aed; }
+    </style>
+</head>
+<body>
+
+    <h1>📊 Logistic Regression: กรองบอทด้วยความน่าจะเป็น</h1>
+    <div class="subtitle">
+        AI ไม่ได้ฟันธงในทันที แต่มันใช้ <b>Sigmoid Curve (โค้งตัว S)</b> แปลงจำนวนการใส่รหัสผิด ให้กลายเป็น <b>"ความน่าจะเป็น (0% - 100%)"</b> <br>
+        ลองปรับโค้งตัว S และเส้นเกณฑ์ (Threshold) เพื่อแยกผู้ใช้งานขี้ลืม (จุดสีเขียวล่าง) ออกจากบอทที่พยายามเจาะระบบ (จุดสีแดงบน) ให้สมบูรณ์แบบ!
+    </div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            
+            <div class="param-group">
+                <div class="param-header">
+                    <span>↔️ จุดกึ่งกลางโค้ง (Bias / Shift)</span>
+                    <span id="val-center">5.0</span>
+                </div>
+                <div class="param-desc">เลื่อนโค้งตัว S ซ้าย-ขวา เพื่อหาจุดแบ่งพฤติกรรม</div>
+                <input type="range" id="slide-center" min="1" max="15" step="0.5" value="5" oninput="updatePlot()">
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span>📐 ความชัน (Weight)</span>
+                    <span id="val-steep">1.0</span>
+                </div>
+                <div class="param-desc">ความมั่นใจของ AI: ถ้าชันมากแปลว่าฟันธงเด็ดขาด ถ้าลาดเอียงแปลว่าเผื่อใจไว้บ้าง</div>
+                <input type="range" id="slide-steep" min="0.1" max="5" step="0.1" value="1.0" oninput="updatePlot()">
+            </div>
+
+            <div class="param-group" style="border-left-color: var(--threshold);">
+                <div class="param-header">
+                    <span style="color: var(--threshold);">✂️ เส้นตัดเกณฑ์ (Threshold)</span>
+                    <span id="val-threshold" style="color: var(--threshold);">50%</span>
+                </div>
+                <div class="param-desc">ความน่าจะเป็นต้องเกินกี่ % เราถึงจะบล็อก IP นี้? (ค่ามาตรฐานคือ 50%)</div>
+                <input type="range" id="slide-threshold" min="10" max="90" step="5" value="50" oninput="updatePlot()">
+            </div>
+
+            <div class="score-box" id="score-box">
+                ผลการคัดกรอง (Accuracy)
+                <div class="score-stats">
+                    <div class="stat-item" style="color: var(--success);">
+                        <span>ปล่อยผ่านถูกคน</span>
+                        <span class="stat-val" id="stat-tn">0</span>
+                    </div>
+                    <div class="stat-item" style="color: var(--danger);">
+                        <span>บล็อกบอทสำเร็จ</span>
+                        <span class="stat-val" id="stat-tp">0</span>
+                    </div>
+                    <div class="stat-item" style="color: #64748b;">
+                        <span>ผิดพลาด</span>
+                        <span class="stat-val" id="stat-err">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="btn-test" onclick="simulateNewTraffic()">🎯 สุ่มทดสอบ IP ใหม่</button>
+        </div>
+
+        <!-- Plot Panel -->
+        <div class="plot-panel">
+            <div class="y-axis-label">ความน่าจะเป็นที่จะเป็นบอท (%)</div>
+            <canvas id="logRegCanvas" width="600" height="400"></canvas>
+            <div class="axis-label">จำนวนครั้งที่ใส่รหัสผ่านผิด (Failed Logins) ➡️</div>
+            
+            <div class="explanation">
+                <strong>💡 ความลับของเส้นโค้งตัว S (Sigmoid):</strong><br>
+                สมการคือ $P = \frac{1}{1 + e^{-(wx + b)}}$ มันถูกออกแบบมาเพื่อ <b>"บีบ"</b> ค่าทุกอย่างบนโลก (เช่น ใส่รหัสผิดตั้งแต่ 0 ถึงพันครั้ง) ให้อยู่ในกรอบ 0 ถึง 1 เท่านั้น! ทำให้เราตีความผลลัพธ์เป็น <b>"เปอร์เซ็นต์ความน่าจะเป็น"</b> ได้ง่ายนั่นเอง
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('logRegCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        // ข้อมูลจำลอง: X = Failed Logins, Y = IsBot (0=No, 1=Yes)
+        const dataPoints = [
+            // ผู้ใช้ปกติ (ลืมรหัสบ้าง)
+            {x: 1, y: 0}, {x: 2, y: 0}, {x: 3, y: 0}, 
+            {x: 4, y: 0}, {x: 5, y: 0}, {x: 6, y: 0},
+            // บอท (พยายามเดารหัสรัวๆ)
+            {x: 8, y: 1}, {x: 9, y: 1}, {x: 10, y: 1}, 
+            {x: 11, y: 1}, {x: 12, y: 1}, {x: 14, y: 1},
+            // จุดที่สับสน (คนลืมรหัสหนักมาก กับ บอทที่เนียนๆ)
+            {x: 7, y: 0}, {x: 7, y: 1} 
+        ];
+
+        let newTestPoint = null;
+
+        // สเกลกราฟ
+        const minX = 0, maxX = 15;
+        function mapX(val) { return (val - minX) / (maxX - minX) * (width - 60) + 30; }
+        // Y mapping: 0 -> bottom(height-40), 1 -> top(40)
+        function mapY(val) { return height - (val * (height - 80) + 40); }
+
+        function drawGrid() {
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            
+            // X-axis lines (Failed logins)
+            for(let i=0; i<=15; i+=1) {
+                ctx.beginPath(); ctx.moveTo(mapX(i), mapY(0)); ctx.lineTo(mapX(i), mapY(1)); ctx.stroke();
+                if(i % 2 === 0) {
+                    ctx.fillStyle = '#64748b';
+                    ctx.textAlign = 'center';
+                    ctx.fillText(i, mapX(i), mapY(0) + 20);
+                }
+            }
+            // Y-axis lines (Probability)
+            [0, 0.25, 0.5, 0.75, 1].forEach(p => {
+                ctx.beginPath(); ctx.moveTo(mapX(0), mapY(p)); ctx.lineTo(mapX(15), mapY(p)); ctx.stroke();
+                ctx.fillStyle = '#64748b';
+                ctx.textAlign = 'right';
+                ctx.fillText((p * 100) + '%', mapX(0) - 5, mapY(p) + 4);
+            });
+        }
+
+        // ฟังก์ชัน Sigmoid หลัก
+        function sigmoid(x, w, center) {
+            // ปรับสมการให้ผู้ใช้เข้าใจง่าย z = w * (x - center)
+            let z = w * (x - center);
+            return 1 / (1 + Math.exp(-z));
+        }
+
+        function updatePlot() {
+            const center = parseFloat(document.getElementById('slide-center').value);
+            const w = parseFloat(document.getElementById('slide-steep').value);
+            const threshold = parseFloat(document.getElementById('slide-threshold').value) / 100;
+
+            document.getElementById('val-center').innerText = center.toFixed(1);
+            document.getElementById('val-steep').innerText = w.toFixed(1);
+            document.getElementById('val-threshold').innerText = (threshold * 100) + '%';
+
+            ctx.clearRect(0, 0, width, height);
+            ctx.font = '12px Segoe UI';
+            drawGrid();
+
+            // 1. วาดเส้น Threshold (แนวนอน)
+            ctx.beginPath();
+            ctx.moveTo(mapX(0), mapY(threshold));
+            ctx.lineTo(mapX(15), mapY(threshold));
+            ctx.strokeStyle = 'var(--threshold)';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            
+            ctx.fillStyle = 'var(--threshold)';
+            ctx.textAlign = 'left';
+            ctx.fillText("เส้นตัดเกณฑ์ (Threshold)", mapX(1), mapY(threshold) - 10);
+
+            // 2. วาดเส้นโค้ง Sigmoid (S-Curve)
+            ctx.beginPath();
+            ctx.moveTo(mapX(0), mapY(sigmoid(0, w, center)));
+            for (let x = 0; x <= 15; x += 0.1) {
+                let prob = sigmoid(x, w, center);
+                ctx.lineTo(mapX(x), mapY(prob));
+            }
+            ctx.strokeStyle = 'var(--primary)';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            let trueNegatives = 0; // ปกติ ทาย ปกติ
+            let truePositives = 0; // บอท ทาย บอท
+            let errors = 0;
+
+            // 3. วาดจุดข้อมูล (Data Points)
+            dataPoints.forEach(pt => {
+                // คำนวณความน่าจะเป็น
+                let prob = sigmoid(pt.x, w, center);
+                let prediction = prob >= threshold ? 1 : 0;
+                
+                // ตรวจสอบความถูกต้อง
+                let isCorrect = (prediction === pt.y);
+                if (isCorrect) {
+                    if (pt.y === 0) trueNegatives++;
+                    else truePositives++;
+                } else {
+                    errors++;
+                }
+
+                // วาดเส้นโยงจากจุด ไปหาโค้งตัว S
+                ctx.beginPath();
+                ctx.moveTo(mapX(pt.x), mapY(pt.y));
+                ctx.lineTo(mapX(pt.x), mapY(prob));
+                ctx.strokeStyle = isCorrect ? '#cbd5e1' : 'rgba(239, 68, 68, 0.5)';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+
+                // วาดจุด
+                ctx.beginPath();
+                ctx.arc(mapX(pt.x), mapY(pt.y), 7, 0, Math.PI * 2);
+                ctx.fillStyle = pt.y === 0 ? 'var(--success)' : 'var(--danger)';
+                ctx.fill();
+                ctx.strokeStyle = isCorrect ? '#fff' : '#000'; // ถ้าผิดขอบดำ
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+
+            // 4. วาดจุดทดสอบใหม่ (ถ้ามี)
+            if (newTestPoint !== null) {
+                let prob = sigmoid(newTestPoint, w, center);
+                let isBlocked = prob >= threshold;
+
+                ctx.beginPath();
+                ctx.arc(mapX(newTestPoint), mapY(prob), 10, 0, Math.PI * 2);
+                ctx.fillStyle = '#f59e0b'; // สีทอง
+                ctx.fill();
+                ctx.strokeStyle = '#000';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+                
+                // วงแหวนกระจาย
+                ctx.beginPath();
+                ctx.arc(mapX(newTestPoint), mapY(prob), 18, 0, Math.PI * 2);
+                ctx.strokeStyle = '#f59e0b';
+                ctx.stroke();
+
+                ctx.fillStyle = isBlocked ? 'var(--danger)' : 'var(--success)';
+                ctx.font = 'bold 14px Segoe UI';
+                ctx.textAlign = 'center';
+                let msg = isBlocked ? '🚨 บล็อก!' : '✅ ปล่อยผ่าน';
+                ctx.fillText(`IP ใหม่ (${(prob*100).toFixed(0)}%) -> ${msg}`, mapX(newTestPoint), mapY(prob) - 25);
+            }
+
+            // อัปเดต Score UI
+            document.getElementById('stat-tn').innerText = trueNegatives;
+            document.getElementById('stat-tp').innerText = truePositives;
+            document.getElementById('stat-err').innerText = errors;
+
+            const scoreBox = document.getElementById('score-box');
+            if (errors === 0) {
+                scoreBox.style.borderColor = 'var(--success)';
+                scoreBox.style.backgroundColor = '#f0fdf4';
+            } else if (errors <= 2) {
+                scoreBox.style.borderColor = '#cbd5e1';
+                scoreBox.style.backgroundColor = '#f8fafc';
+            } else {
+                scoreBox.style.borderColor = 'var(--danger)';
+                scoreBox.style.backgroundColor = '#fef2f2';
+            }
+        }
+
+        function simulateNewTraffic() {
+            // สุ่มจำนวนการพิมพ์ผิด 0 ถึง 14
+            newTestPoint = Math.floor(Math.random() * 15);
+            updatePlot();
+        }
+
+        // โหลดครั้งแรก
+        updatePlot();
+    </script>
+</body>
+</html>
