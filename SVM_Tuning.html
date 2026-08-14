@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVM Tuning - ศิลปะแห่งการแบ่งเขตแดน</title>
+    <style>
+        :root {
+            --primary: #ec4899; /* Pink for SVM */
+            --primary-light: #fce7f3;
+            --success: #10b981; /* Green */
+            --danger: #ef4444; /* Red */
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            flex: 1;
+            min-width: 350px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .param-group {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px dashed #cbd5e1;
+        }
+        .param-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+        .param-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--primary);
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .param-value {
+            background: var(--primary);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+        }
+
+        .param-desc {
+            font-size: 0.9rem;
+            color: #475569;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        input[type="range"], select {
+            width: 100%;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            outline: none;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        /* Visualization Panel */
+        .visualization-panel {
+            flex: 2;
+            min-width: 500px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .canvas-container {
+            position: relative;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            margin-top: 10px;
+        }
+
+        canvas { display: block; }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-top: 15px;
+            font-size: 0.95rem;
+            font-weight: bold;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .legend-color { width: 16px; height: 16px; border-radius: 50%; }
+
+        .feedback-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #fdf2f8;
+            border-left: 4px solid var(--primary);
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+            color: #831843;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>📐 จูนพารามิเตอร์ SVM (Support Vector Machine)</h1>
+    <div class="subtitle">
+        ทดลองปรับค่า <b>Kernel, C และ Gamma</b> แล้วสังเกตว่า <b>"เส้นแบ่งอาณาเขต (Decision Boundary)"</b> เปลี่ยนรูปร่างไปอย่างไร <br>
+        เป้าหมายคือการสร้างเส้นแบ่งที่คลุมข้อมูลสีแดงได้หมด โดยไม่คดเคี้ยวหรือซับซ้อนจนเกินไป (หลีกเลี่ยง Overfitting)
+    </div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h2>⚙️ ตัวแปร (Hyperparameters)</h2>
+            
+            <div class="param-group">
+                <div class="param-header"><span>1. Kernel (รูปแบบของเส้นแบ่ง)</span></div>
+                <div class="param-desc">
+                    <strong>มิติของการมองปัญหา:</strong> <br>
+                    - <b>Linear:</b> ลากเส้นตรงทื่อๆ (เหมาะกับปัญหาพื้นฐาน)<br>
+                    - <b>RBF (Radial Basis Function):</b> เส้นโค้งอิสระ วงกลมล้อมรอบข้อมูล (เก่งมากและนิยมใช้ที่สุด)
+                </div>
+                <select id="sel-kernel" onchange="updateSim()">
+                    <option value="linear">Linear (เส้นตรง)</option>
+                    <option value="rbf" selected>RBF (เส้นโค้ง/วงกลม)</option>
+                </select>
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span>2. C (Regularization)</span>
+                    <span class="param-value" id="val-c">ต่ำ (ยอมให้มีข้อผิดพลาดได้)</span>
+                </div>
+                <div class="param-desc">
+                    <strong>ความเข้มงวดของกฎ:</strong> <br>
+                    - <b>ค่า C ต่ำ:</b> อนุโลมให้มีจุดขยะ (Noise) หลุดเข้ามาได้บ้าง เพื่อให้เส้นแบ่งดูเรียบง่ายสมูท (Generalized)<br>
+                    - <b>ค่า C สูง:</b> เข้มงวดมาก! ต้องไม่ให้มีใครผิดกลุ่มเลย เส้นแบ่งจะบิดเบี้ยวเพื่อหลบจุดขยะ (เสี่ยง Overfitting)
+                </div>
+                <input type="range" id="slider-c" min="1" max="100" step="1" value="10" oninput="updateSim()">
+            </div>
+
+            <div class="param-group" id="gamma-group">
+                <div class="param-header">
+                    <span>3. Gamma (สำหรับ RBF Kernel)</span>
+                    <span class="param-value" id="val-gamma">ปานกลาง</span>
+                </div>
+                <div class="param-desc">
+                    <strong>ระยะสายตาของจุดข้อมูล (ขอบเขตอิทธิพล):</strong> <br>
+                    - <b>Gamma ต่ำ:</b> สายตายาว มองเห็นกันไกลๆ (อาณาเขตกว้างขวางและเชื่อมต่อกัน)<br>
+                    - <b>Gamma สูง:</b> สายตาสั้น สนใจแค่จุดที่อยู่ติดกันมากๆ (อาณาเขตจะหดแคบเป็นเกาะเล็กเกาะน้อยรอบจุดข้อมูล)
+                </div>
+                <input type="range" id="slider-gamma" min="1" max="100" step="1" value="20" oninput="updateSim()">
+            </div>
+        </div>
+
+        <!-- Visualization Panel -->
+        <div class="visualization-panel">
+            <h2>ผลลัพธ์ของอาณาเขต (Decision Region)</h2>
+            
+            <div class="legend">
+                <div class="legend-item"><div class="legend-color" style="background: var(--success);"></div> พฤติกรรมปกติ</div>
+                <div class="legend-item"><div class="legend-color" style="background: var(--danger);"></div> แฮกเกอร์</div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="svmCanvas" width="500" height="400"></canvas>
+            </div>
+
+            <div class="feedback-box" id="feedback-box">
+                กำลังคำนวณ...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('svmCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+        const resolution = 8; // ขนาดพิกเซลในการวาด (ค่าน้อยยิ่งละเอียด แต่กินสเปค)
+
+        // ข้อมูลจำลอง: ให้กลุ่มสีแดงอยู่ตรงกลาง ล้อมรอบด้วยสีเขียว (ปัญหาแบบ Non-linear)
+        let basePoints = []; // ข้อมูลแพทเทิร์นหลัก
+        let noisePoints = []; // ข้อมูลขยะที่หลุดกลุ่ม
+
+        // สร้างข้อมูล
+        function initData() {
+            // สร้างกลุ่มตรงกลาง (สีแดง - แฮกเกอร์)
+            for(let i=0; i<30; i++) {
+                basePoints.push({
+                    x: Math.random() * 0.4 + 0.3, // 0.3 to 0.7
+                    y: Math.random() * 0.4 + 0.3, // 0.3 to 0.7
+                    label: -1 // Red
+                });
+            }
+            // สร้างกลุ่มล้อมรอบ (สีเขียว - ปกติ)
+            for(let i=0; i<60; i++) {
+                let angle = Math.random() * Math.PI * 2;
+                let radius = Math.random() * 0.2 + 0.35; // ขอบนอก
+                basePoints.push({
+                    x: 0.5 + Math.cos(angle) * radius,
+                    y: 0.5 + Math.sin(angle) * radius,
+                    label: 1 // Green
+                });
+            }
+            // สร้าง Noise (จุดเขียวหลุดไปกลางแดง, จุดแดงหลุดไปขอบนอก)
+            noisePoints.push({ x: 0.45, y: 0.55, label: 1 });
+            noisePoints.push({ x: 0.55, y: 0.45, label: 1 });
+            noisePoints.push({ x: 0.2, y: 0.2, label: -1 });
+            noisePoints.push({ x: 0.8, y: 0.8, label: -1 });
+        }
+
+        // ฟังก์ชันจำลองการทำงานของ SVM Prediction
+        function predict(x, y, kernel, c_val, gamma_val) {
+            let score = 0;
+            
+            // ถ้า C สูง จะเอา noise มาคิดคำนวณด้วยอย่างเข้มงวด
+            // ถ้า C ต่ำ จะมองข้าม noise (จำลองการลดผลกระทบ)
+            let activePoints = basePoints;
+            if (c_val > 50) {
+                activePoints = basePoints.concat(noisePoints);
+            }
+
+            if (kernel === 'linear') {
+                // สำหรับ Linear (หลอกตา) ให้แบ่งครึ่งเฉียงๆ ปกติมันแยกข้อมูลวงกลมไม่ได้
+                score = (x - 0.5) + (y - 0.5); 
+            } else {
+                // RBF Kernel Trick Approximation: sum( y_i * exp(-gamma * ||x - x_i||^2) )
+                let gamma = gamma_val * 2; // Scale
+                for (let pt of activePoints) {
+                    let distSq = Math.pow(x - pt.x, 2) + Math.pow(y - pt.y, 2);
+                    let influence = Math.exp(-gamma * distSq);
+                    score += pt.label * influence;
+                }
+            }
+            return score;
+        }
+
+        // อัปเดตหน้าจอหลัก
+        function updateSim() {
+            const kernel = document.getElementById('sel-kernel').value;
+            const c_slider = parseInt(document.getElementById('slider-c').value);
+            const gamma_slider = parseInt(document.getElementById('slider-gamma').value);
+
+            // UI Updates
+            document.getElementById('gamma-group').style.opacity = kernel === 'linear' ? '0.3' : '1';
+            document.getElementById('slider-gamma').disabled = kernel === 'linear';
+
+            // Text Labels for C
+            let cText = "ปานกลาง";
+            if (c_slider < 30) cText = "ต่ำ (ยืดหยุ่น / ปล่อยผ่าน Noise)";
+            else if (c_slider > 70) cText = "สูงมาก! (เข้มงวดสุดๆ)";
+            document.getElementById('val-c').innerText = cText;
+
+            // Text Labels for Gamma
+            let gText = "ปานกลาง";
+            if (gamma_slider < 15) gText = "ต่ำ (มองภาพกว้าง)";
+            else if (gamma_slider > 60) gText = "สูงมาก! (โฟกัสแคบเป็นจุดๆ)";
+            document.getElementById('val-gamma').innerText = gText;
+
+            // 1. วาด Decision Boundary Background
+            ctx.clearRect(0, 0, width, height);
+            for (let px = 0; px < width; px += resolution) {
+                for (let py = 0; py < height; py += resolution) {
+                    // Normalize coordinates to 0..1 for math
+                    let nx = (px + resolution/2) / width;
+                    let ny = (py + resolution/2) / height;
+                    
+                    let score = predict(nx, ny, kernel, c_slider, gamma_slider);
+                    
+                    // หาก score > 0 ให้เป็นฝั่งเขียว, < 0 ให้เป็นฝั่งแดง
+                    ctx.fillStyle = score > 0 ? '#dcfce7' : '#fee2e2'; // Light Green / Light Red
+                    ctx.fillRect(px, py, resolution, resolution);
+                }
+            }
+
+            // 2. วาดจุดข้อมูล (Data Points)
+            const allPoints = basePoints.concat(noisePoints);
+            allPoints.forEach(pt => {
+                ctx.beginPath();
+                ctx.arc(pt.x * width, pt.y * height, 5, 0, Math.PI * 2);
+                ctx.fillStyle = pt.label === 1 ? '#10b981' : '#ef4444';
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            });
+
+            // 3. วิเคราะห์ผล (Feedback)
+            let feedback = [];
+            
+            if (kernel === 'linear') {
+                feedback.push("⚠️ <b>Underfitting จาก Kernel:</b> ข้อมูลชุดนี้มีลักษณะเป็นวงกลม (สีแดงอยู่ตรงกลาง) การใช้ Linear Kernel (เส้นตรง) จึงไม่มีทางแบ่งข้อมูลได้อย่างถูกต้องเลย นี่คือเหตุผลที่ต้องพึ่งพา RBF Kernel");
+            } else {
+                if (c_slider > 50 && gamma_slider > 60) {
+                    feedback.push("🚨 <b>Overfitting รุนแรง! (C สูง + Gamma สูง):</b> โมเดลมีความเข้มงวดสุดๆ แถมสายตาสั้น อาณาเขตสีเขียว/แดง จึงแตกลายงาเป็นเกาะเล็กเกาะน้อยเพื่อพยายามจำแนกทุกจุดขยะให้ถูกทั้งหมด (ท่องจำข้อสอบ)");
+                } else if (c_slider > 50) {
+                    feedback.push("⚠️ <b>เริ่ม Overfit (C สูง):</b> สังเกตว่าอาณาเขตพยายามจะบิดเบี้ยวเพื่อหลบจุดสีเขียวที่อยู่ตรงกลาง (Noise) ทำให้เส้นขอบดูไม่สมูท");
+                } else if (gamma_slider > 60) {
+                    feedback.push("⚠️ <b>อาณาเขตหดตัว (Gamma สูง):</b> อาณาเขตสีแดงหดตัวลงรอบๆ จุดข้อมูลจนดูเหมือนหยดน้ำเล็กๆ โมเดลอาจจะทำงานได้ไม่ดีกับข้อมูลใหม่ที่หลุดจากบริเวณนี้ไปเพียงนิดเดียว");
+                } else {
+                    feedback.push("✅ <b>Generalized (สมดุลยอดเยี่ยม):</b> อาณาเขตมีรูปทรงกลมมน สมูท และครอบคลุมได้ดี โดยยอมปล่อยให้จุดขยะบางจุด (Noise) ทำผิดพลาดไปบ้าง เพื่อรักษาเส้นขอบให้เรียบง่ายและปลอดภัยที่สุด");
+                }
+            }
+
+            document.getElementById('feedback-box').innerHTML = feedback.join("<br><br>");
+        }
+
+        // Initialize
+        initData();
+        updateSim();
+    </script>
+</body>
+</html>
