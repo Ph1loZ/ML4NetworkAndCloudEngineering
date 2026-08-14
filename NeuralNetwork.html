@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Game - จำลองสมอง AI</title>
+    <style>
+        :root {
+            --primary: #6366f1;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --node-input: #3b82f6;
+            --node-hidden: #8b5cf6;
+            --node-output-normal: #22c55e;
+            --node-output-hacker: #ef4444;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 900px;
+            align-items: center;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            display: flex;
+            justify-content: space-around;
+            gap: 20px;
+            z-index: 10;
+        }
+
+        .input-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #eff6ff;
+            padding: 15px;
+            border-radius: 12px;
+            border: 2px solid #bfdbfe;
+        }
+
+        .input-group label {
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: var(--node-input);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--node-input);
+            cursor: pointer;
+        }
+
+        /* Neural Network Visualization */
+        .nn-container {
+            position: relative;
+            width: 100%;
+            height: 500px;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            border: 2px solid #e2e8f0;
+        }
+
+        /* SVG Lines */
+        svg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+
+        line {
+            stroke: #cbd5e1;
+            stroke-linecap: round;
+            transition: stroke-width 0.3s, stroke 0.3s, opacity 0.3s;
+        }
+
+        /* Nodes */
+        .node {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            background: white;
+            border: 4px solid #cbd5e1;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            transition: all 0.3s;
+        }
+
+        .node-label {
+            position: absolute;
+            top: -30px;
+            width: 150px;
+            text-align: center;
+            font-size: 0.9rem;
+            color: #475569;
+            font-weight: bold;
+            pointer-events: none;
+        }
+
+        .node-desc {
+            position: absolute;
+            bottom: -45px;
+            width: 180px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #64748b;
+            pointer-events: none;
+            line-height: 1.2;
+        }
+
+        /* Value display inside node */
+        .node-val {
+            font-size: 1.2rem;
+        }
+
+        /* Layout Positions (Percentages) */
+        /* Input Layer (X: 15%) */
+        #in-1 { left: 15%; top: 20%; border-color: var(--node-input); }
+        #in-2 { left: 15%; top: 50%; border-color: var(--node-input); }
+        #in-3 { left: 15%; top: 80%; border-color: var(--node-input); }
+
+        /* Hidden Layer (X: 50%) */
+        #hid-1 { left: 50%; top: 35%; border-color: var(--node-hidden); }
+        #hid-2 { left: 50%; top: 65%; border-color: var(--node-hidden); }
+
+        /* Output Layer (X: 85%) */
+        #out-1 { left: 85%; top: 50%; border-color: var(--node-output-normal); width: 100px; height: 100px; }
+
+        .explanation {
+            background: #eff6ff;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            color: #1e3a8a;
+            width: 100%;
+            box-sizing: border-box;
+            border-left: 5px solid var(--primary);
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>🧠 Neural Network: การส่งต่อสัญญาณประสาท</h1>
+    <div class="subtitle">
+        ลองเลื่อนแถบข้อมูล (Input) ด้านล่าง แล้วสังเกตว่าข้อมูลวิ่งผ่าน <b>"เส้นประสาท (น้ำหนัก/Weights)"</b> 
+        ไปผสมกันใน <b>"ชั้นซ่อนเร้น (Hidden Layer)"</b> เพื่อหาจุดสังเกต ก่อนส่งให้ <b>"ผู้จัดการ (Output)"</b> ฟันธงอย่างไร!
+    </div>
+
+    <div class="container">
+        
+        <!-- แผงควบคุม Inputs -->
+        <div class="control-panel">
+            <div class="input-group">
+                <label>🌍 IP ต่างประเทศ <span id="val-i1">0</span></label>
+                <input type="range" id="slide-1" min="0" max="10" value="0" oninput="updateNetwork()">
+            </div>
+            <div class="input-group">
+                <label>🕒 ใช้งานตอนดึก <span id="val-i2">0</span></label>
+                <input type="range" id="slide-2" min="0" max="10" value="0" oninput="updateNetwork()">
+            </div>
+            <div class="input-group">
+                <label>🔑 เดารหัสผิด <span id="val-i3">0</span></label>
+                <input type="range" id="slide-3" min="0" max="10" value="0" oninput="updateNetwork()">
+            </div>
+        </div>
+
+        <!-- กล่องแสดงโครงข่าย -->
+        <div class="nn-container">
+            <svg id="lines-svg">
+                <!-- Lines Input -> Hidden 1 -->
+                <line id="l-i1-h1" x1="15%" y1="20%" x2="50%" y2="35%"></line>
+                <line id="l-i2-h1" x1="15%" y1="50%" x2="50%" y2="35%"></line>
+                <line id="l-i3-h1" x1="15%" y1="80%" x2="50%" y2="35%"></line>
+                <!-- Lines Input -> Hidden 2 -->
+                <line id="l-i1-h2" x1="15%" y1="20%" x2="50%" y2="65%"></line>
+                <line id="l-i2-h2" x1="15%" y1="50%" x2="50%" y2="65%"></line>
+                <line id="l-i3-h2" x1="15%" y1="80%" x2="50%" y2="65%"></line>
+                <!-- Lines Hidden -> Output -->
+                <line id="l-h1-o1" x1="50%" y1="35%" x2="85%" y2="50%"></line>
+                <line id="l-h2-o1" x1="50%" y1="65%" x2="85%" y2="50%"></line>
+            </svg>
+
+            <!-- Input Nodes -->
+            <div class="node" id="in-1">
+                <div class="node-label">Input 1</div>
+                <div class="node-val" id="text-i1">0</div>
+            </div>
+            <div class="node" id="in-2">
+                <div class="node-label">Input 2</div>
+                <div class="node-val" id="text-i2">0</div>
+            </div>
+            <div class="node" id="in-3">
+                <div class="node-label">Input 3</div>
+                <div class="node-val" id="text-i3">0</div>
+            </div>
+
+            <!-- Hidden Nodes -->
+            <div class="node" id="hid-1">
+                <div class="node-label" style="color: var(--node-hidden);">Hidden 1</div>
+                <div class="node-val" id="text-h1">0%</div>
+                <div class="node-desc">🕵️‍♂️ <b>ตัวจับผิดพฤติกรรม</b><br>(เน้นดู IP + เวลาดึก)</div>
+            </div>
+            <div class="node" id="hid-2">
+                <div class="node-label" style="color: var(--node-hidden);">Hidden 2</div>
+                <div class="node-val" id="text-h2">0%</div>
+                <div class="node-desc">🛡️ <b>ตัวจับการเจาะระบบ</b><br>(เน้นดู การเดารหัสผิด)</div>
+            </div>
+
+            <!-- Output Node -->
+            <div class="node" id="out-1">
+                <div class="node-label" style="font-size: 1.1rem; color: #1e293b;">Output (ฟันธง)</div>
+                <div class="node-val" id="text-o1" style="font-size: 1.5rem;">ปกติ</div>
+            </div>
+        </div>
+
+        <div class="explanation">
+            <strong>💡 ความรู้เบื้องหลัง (How it works):</strong><br>
+            สมองเทียมชั้นซ่อนเร้น (Hidden Layer) ทำหน้าที่ <b>สกัดจุดเด่น (Feature Extraction)</b><br>
+            - สังเกตว่า <b>Hidden 1</b> จะสว่างขึ้นเมื่อคุณเร่ง "IP ต่างประเทศ" และ "เวลาดึก" (มันถูกตั้งน้ำหนักเส้นประสาท 2 เส้นนี้ไว้สูง)<br>
+            - สังเกตว่า <b>Hidden 2</b> จะสนใจแค่ "การเดารหัสผิด" เป็นหลัก<br>
+            - ผู้จัดการ (Output) จะไม่มองข้อมูลดิบแล้ว แต่มองแค่ว่า Hidden 1 หรือ Hidden 2 ร้องเตือนหรือไม่ เพื่อฟันธงว่าเป็นแฮกเกอร์!
+        </div>
+
+    </div>
+
+    <script>
+        // กำหนดค่าน้ำหนัก (Weights) เพื่อจำลองสถานการณ์
+        // Weights จาก Input ไป Hidden 1 (เน้นพฤติกรรมแปลกๆ)
+        const w_i1_h1 = 0.6; // IP มีผลมาก
+        const w_i2_h1 = 0.5; // เวลา มีผลมาก
+        const w_i3_h1 = 0.0; // รหัสผ่าน แทบไม่มีผล
+        
+        // Weights จาก Input ไป Hidden 2 (เน้นเจาะระบบ Brute-force)
+        const w_i1_h2 = 0.1;
+        const w_i2_h2 = 0.1;
+        const w_i3_h2 = 0.9; // รหัสผ่าน มีผลมหาศาล
+
+        // Weights จาก Hidden ไป Output
+        const w_h1_o1 = 0.5;
+        const w_h2_o1 = 0.8; 
+
+        // ฟังก์ชันอัปเดตเส้น (ความสว่าง/ความหนา)
+        function updateLine(lineId, value, maxVal) {
+            const line = document.getElementById(lineId);
+            const intensity = value / maxVal; // 0 to 1
+            
+            if (intensity > 0.1) {
+                line.style.stroke = `rgba(99, 102, 241, ${0.2 + (intensity * 0.8)})`; // สีฟ้า/ม่วงสว่างขึ้น
+                line.style.strokeWidth = `${2 + (intensity * 6)}px`; // หนาขึ้น
+            } else {
+                line.style.stroke = '#cbd5e1';
+                line.style.strokeWidth = '2px';
+            }
+        }
+
+        // ฟังก์ชันหลักที่ทำงานเมื่อขยับ Slider
+        function updateNetwork() {
+            // 1. อ่านค่า Input
+            const i1 = parseInt(document.getElementById('slide-1').value);
+            const i2 = parseInt(document.getElementById('slide-2').value);
+            const i3 = parseInt(document.getElementById('slide-3').value);
+
+            document.getElementById('val-i1').innerText = i1;
+            document.getElementById('val-i2').innerText = i2;
+            document.getElementById('val-i3').innerText = i3;
+
+            document.getElementById('text-i1').innerText = i1;
+            document.getElementById('text-i2').innerText = i2;
+            document.getElementById('text-i3').innerText = i3;
+
+            // 2. คำนวณ Hidden Layer (ผลรวมแบบง่าย Summation)
+            // หาร 10 เพื่อให้ค่าตกอยู่ในช่วงประมาณ 0-1 (หรือเกินนิดหน่อย)
+            let h1_val = ((i1 * w_i1_h1) + (i2 * w_i2_h1) + (i3 * w_i3_h1)) / 10;
+            let h2_val = ((i1 * w_i1_h2) + (i2 * w_i2_h2) + (i3 * w_i3_h2)) / 10;
+
+            // ใส่ Activation Function (จำลองแบบตัดค่าเกิน 1 ให้เหลือ 1)
+            if(h1_val > 1) h1_val = 1;
+            if(h2_val > 1) h2_val = 1;
+
+            document.getElementById('text-h1').innerText = Math.round(h1_val * 100) + '%';
+            document.getElementById('text-h2').innerText = Math.round(h2_val * 100) + '%';
+
+            // เติมสีโหนด Hidden ตามความแรง (Activation)
+            document.getElementById('hid-1').style.backgroundColor = `rgba(139, 92, 246, ${h1_val * 0.8})`;
+            document.getElementById('hid-1').style.color = h1_val > 0.5 ? 'white' : 'black';
+            document.getElementById('hid-2').style.backgroundColor = `rgba(139, 92, 246, ${h2_val * 0.8})`;
+            document.getElementById('hid-2').style.color = h2_val > 0.5 ? 'white' : 'black';
+
+            // 3. อัปเดตเส้นประสาท (Input -> Hidden)
+            updateLine('l-i1-h1', i1 * w_i1_h1, 10);
+            updateLine('l-i2-h1', i2 * w_i2_h1, 10);
+            updateLine('l-i3-h1', i3 * w_i3_h1, 10); // เส้นนี้จะไม่ค่อยสว่างเพราะ w_i3_h1 = 0
+
+            updateLine('l-i1-h2', i1 * w_i1_h2, 10);
+            updateLine('l-i2-h2', i2 * w_i2_h2, 10);
+            updateLine('l-i3-h2', i3 * w_i3_h2, 10); // เส้นนี้จะสว่างมากถ้า i3 เยอะ
+
+            // 4. คำนวณ Output Layer
+            let out_val = (h1_val * w_h1_o1) + (h2_val * w_h2_o1);
+            
+            // อัปเดตเส้นประสาท (Hidden -> Output)
+            updateLine('l-h1-o1', h1_val * w_h1_o1, 1);
+            updateLine('l-h2-o1', h2_val * w_h2_o1, 1);
+
+            // ฟันธงผลลัพธ์ (Threshold)
+            const outNode = document.getElementById('out-1');
+            const outText = document.getElementById('text-o1');
+            
+            if (out_val > 0.6) {
+                // Hacker!
+                outNode.style.backgroundColor = 'var(--node-output-hacker)';
+                outNode.style.borderColor = '#b91c1c';
+                outNode.style.color = 'white';
+                outText.innerText = '🚨 แฮกเกอร์!';
+            } else {
+                // Normal
+                outNode.style.backgroundColor = 'var(--node-output-normal)';
+                outNode.style.borderColor = '#15803d';
+                outNode.style.color = 'white';
+                outText.innerText = '✅ ปกติ';
+            }
+        }
+
+        // โหลดครั้งแรก
+        updateNetwork();
+    </script>
+</body>
+</html>
