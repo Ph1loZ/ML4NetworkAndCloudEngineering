@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LSTM Tuning - จูนสมองนักพยากรณ์</title>
+    <style>
+        :root {
+            --primary: #8b5cf6; /* Purple */
+            --secondary: #3b82f6; /* Blue */
+            --success: #10b981; /* Green */
+            --danger: #ef4444; /* Red */
+            --warning: #f59e0b; /* Amber */
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            flex: 1;
+            min-width: 350px;
+            max-width: 400px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .param-group {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+        }
+
+        .param-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .param-value {
+            background: var(--primary);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+        }
+
+        .param-desc {
+            font-size: 0.85rem;
+            color: #475569;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary);
+            cursor: pointer;
+            padding: 8px 0;
+        }
+
+        .btn-regenerate {
+            width: 100%;
+            padding: 12px;
+            background-color: #64748b;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            margin-top: -5px;
+        }
+        .btn-regenerate:hover { transform: scale(1.02); }
+
+        /* Plot Panel */
+        .plot-panel {
+            flex: 1.5;
+            min-width: 500px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .canvas-container {
+            position: relative;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            background: #fff;
+            width: 100%;
+            height: 350px;
+            margin-top: 10px;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .legend {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 10px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            justify-content: center;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .legend-color { width: 14px; height: 4px; border-radius: 2px; }
+
+        .feedback-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #eff6ff;
+            border-left: 4px solid var(--primary);
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+            color: #1e3a8a;
+            width: 100%;
+            box-sizing: border-box;
+            line-height: 1.6;
+            min-height: 80px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>📈 จูนพารามิเตอร์ LSTM (พยากรณ์ข้อมูล Time Series)</h1>
+    <div class="subtitle">
+        จำลองการพยากรณ์ <b>"ปริมาณการใช้งาน Cloud Server ในแต่ละชั่วโมง"</b> ที่มีรูปแบบขึ้นลง (Pattern) และข้อมูลขยะ (Noise) ปะปนอยู่<br>
+        ลองปรับแต่งสมองของ LSTM ดูว่า มันจะพยากรณ์ล่วงหน้าได้แม่นยำแค่ไหน!
+    </div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            
+            <div class="param-group">
+                <div class="param-header">
+                    <span>1. Units (ขนาดความจำ)</span>
+                    <span class="param-value" id="val-units">32</span>
+                </div>
+                <div class="param-desc">
+                    <strong>จำนวนเซลล์ประสาท:</strong> <br>
+                    - <b>น้อยไป:</b> สมองเล็ก จำ Pattern ที่ซับซ้อนไม่ได้ เส้นพยากรณ์จะเรียบแบน (Underfitting)<br>
+                    - <b>มากไป:</b> สมองใหญ่เกินไป จะพยายามจำแม้กระทั่ง Noise ทำให้เส้นหยักยึกยือ (Overfitting)
+                </div>
+                <input type="range" id="slide-units" min="4" max="128" step="4" value="32" oninput="updateSim()">
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span>2. Timesteps (การมองย้อนอดีต)</span>
+                    <span class="param-value" id="val-timesteps">10</span>
+                </div>
+                <div class="param-desc">
+                    <strong>จำนวนข้อมูลย้อนหลังที่ใช้ดู:</strong> <br>
+                    - <b>น้อยไป:</b> มองแค่อดีตใกล้ๆ ทำให้จับจังหวะคลื่นไม่ได้ และพยากรณ์ช้ากว่าความเป็นจริง (Lagging)<br>
+                    - <b>พอดี:</b> มองเห็นครบรอบคลื่น ทำให้กะจังหวะขึ้นลงได้เป๊ะ
+                </div>
+                <input type="range" id="slide-timesteps" min="1" max="30" step="1" value="10" oninput="updateSim()">
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span>3. Dropout (การสุ่มลืม)</span>
+                    <span class="param-value" id="val-dropout">0.1</span>
+                </div>
+                <div class="param-desc">
+                    <strong>เปอร์เซ็นต์การปิดเซลล์สมองชั่วคราว:</strong> <br>
+                    ช่วยป้องกันอาการ <b>"ท่องจำ (Overfitting)"</b> โดยบังคับให้มันลืมข้อมูลบางส่วนไปบ้าง โมเดลจะได้เส้นที่สมูทขึ้น
+                </div>
+                <input type="range" id="slide-dropout" min="0" max="0.5" step="0.05" value="0.1" oninput="updateSim()">
+            </div>
+
+            <button class="btn-regenerate" onclick="generateData()">🎲 สุ่มข้อมูล (Time Series) ใหม่</button>
+        </div>
+
+        <!-- Plot Panel -->
+        <div class="plot-panel">
+            
+            <div class="legend">
+                <div class="legend-item"><div class="legend-color" style="background: #94a3b8;"></div> ข้อมูลจริง (Actual Load)</div>
+                <div class="legend-item"><div class="legend-color" style="background: var(--primary);"></div> เส้นพยากรณ์จาก LSTM (Prediction)</div>
+            </div>
+
+            <div class="canvas-container">
+                <canvas id="tsCanvas" width="600" height="350"></canvas>
+            </div>
+
+            <div class="feedback-box" id="feedback-box">
+                กำลังวิเคราะห์พารามิเตอร์...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('tsCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        let trueData = [];
+        let basePattern = [];
+        let noiseData = [];
+        const dataLength = 100; // จำนวนจุดบนกราฟ
+
+        // 1. สร้างข้อมูล Time Series ปลอม (Sine Wave + Noise)
+        function generateData() {
+            trueData = [];
+            basePattern = [];
+            noiseData = [];
+            
+            // Randomize phase and frequency slightly
+            let phase = Math.random() * Math.PI;
+            let freq = 0.3 + (Math.random() * 0.1); 
+
+            for (let t = 0; t < dataLength; t++) {
+                // Base pattern: Sine wave representing daily cycle
+                let base = Math.sin(t * freq + phase) * 35 + 50; 
+                // Noise: Random server spikes
+                let noise = (Math.random() - 0.5) * 20; 
+                
+                basePattern.push(base);
+                noiseData.push(noise);
+                trueData.push(base + noise);
+            }
+            updateSim();
+        }
+
+        // ฟังก์ชัน Map พิกัดลง Canvas
+        function mapX(t) { return (t / (dataLength - 1)) * (width - 40) + 20; }
+        function mapY(val) { return height - ((val / 100) * (height - 40) + 20); }
+
+        function drawGrid() {
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            
+            // แนวนอน (0, 25, 50, 75, 100)
+            [0, 25, 50, 75, 100].forEach(p => {
+                ctx.beginPath(); ctx.moveTo(20, mapY(p)); ctx.lineTo(width-20, mapY(p)); ctx.stroke();
+                ctx.fillStyle = '#94a3b8'; ctx.textAlign = 'right'; ctx.font = '10px Arial';
+                ctx.fillText(p, 15, mapY(p) + 4);
+            });
+        }
+
+        // 2. ฟังก์ชันอัปเดต Simulation ตาม Hyperparameters
+        function updateSim() {
+            const units = parseInt(document.getElementById('slide-units').value);
+            const timesteps = parseInt(document.getElementById('slide-timesteps').value);
+            const dropout = parseFloat(document.getElementById('slide-dropout').value);
+
+            // Update Text UI
+            document.getElementById('val-units').innerText = units;
+            document.getElementById('val-timesteps').innerText = timesteps;
+            document.getElementById('val-dropout').innerText = dropout.toFixed(2);
+
+            // --- Logic จำลองผลกระทบของพารามิเตอร์ ---
+            let predictions = [];
+            
+            // a. ผลของ Units (Capacity): ถ้าน้อยไป amplitude จะแบน / ถ้ามากไป จะจำ noise
+            let capacityFactor = Math.min(1, units / 16); // < 16 = underfit
+            let overfitFactor = Math.max(0, (units - 32) / 96); // 0 to 1
+
+            // b. ผลของ Dropout: ช่วยลด overfit แต่อาจทำให้แบนลงนิดหน่อยถ้าเยอะไป
+            overfitFactor = Math.max(0, overfitFactor * (1 - (dropout * 2.5))); // Dropout ลดการจำ Noise
+            if (dropout > 0.3) capacityFactor *= (1 - (dropout - 0.3)); // Dropout มากไป โมเดลเรียนไม่รู้เรื่อง
+
+            // c. ผลของ Timesteps: ถ้าน้อยไป โมเดลจะกะจังหวะไม่ถูกและ "ตามหลัง (Lag)"
+            // สมมติคลื่นใช้เวลา 1 รอบประมาณ 15-20 ก้าว
+            let optimalTimesteps = 12; 
+            let lag = Math.max(0, optimalTimesteps - timesteps); 
+
+            // คำนวณเส้น Prediction
+            for (let t = 0; t < dataLength; t++) {
+                if (t < timesteps) {
+                    predictions.push(null); // ช่วงแรกยังไม่มีข้อมูลย้อนหลังพอให้ทาย
+                    continue;
+                }
+
+                // ดึงข้อมูลในอดีต (Lag)
+                let lookbackIndex = Math.max(0, t - lag);
+                
+                // Prediction = Base(ย้อนหลัง) * ความจุ + Noise(ย้อนหลัง) * อาการOverfit
+                let predBase = 50 + (basePattern[lookbackIndex] - 50) * capacityFactor;
+                let predNoise = noiseData[lookbackIndex] * overfitFactor;
+                
+                predictions.push(predBase + predNoise);
+            }
+
+            // --- วาด Canvas ---
+            ctx.clearRect(0, 0, width, height);
+            drawGrid();
+
+            // วาดข้อมูลจริง (สีเทา)
+            ctx.beginPath();
+            for (let t = 0; t < dataLength; t++) {
+                if (t === 0) ctx.moveTo(mapX(t), mapY(trueData[t]));
+                else ctx.lineTo(mapX(t), mapY(trueData[t]));
+            }
+            ctx.strokeStyle = 'rgba(148, 163, 184, 0.6)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // วาดเส้นพยากรณ์ (สีม่วง)
+            ctx.beginPath();
+            let started = false;
+            for (let t = 0; t < dataLength; t++) {
+                if (predictions[t] !== null) {
+                    if (!started) {
+                        ctx.moveTo(mapX(t), mapY(predictions[t]));
+                        started = true;
+                    } else {
+                        ctx.lineTo(mapX(t), mapY(predictions[t]));
+                    }
+                }
+            }
+            ctx.strokeStyle = 'var(--primary)';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // --- วิเคราะห์ Feedback ---
+            let fb = [];
+            const fbBox = document.getElementById('feedback-box');
+
+            if (units < 16) {
+                fb.push("⚠️ <b>Underfitting (Units ต่ำไป):</b> สมองของ LSTM เล็กเกินไป มันพยายามลากเส้นเรียบๆ แบนๆ เพราะไม่สามารถทำความเข้าใจรูปแบบคลื่นที่ซับซ้อนได้");
+                fbBox.style.backgroundColor = '#fef3c7'; fbBox.style.borderLeftColor = 'var(--warning)';
+            } else if (units > 64 && dropout < 0.15) {
+                fb.push("🚨 <b>Overfitting (Units สูง + Dropout ต่ำ):</b> โมเดลมีความจำเยอะมาก แต่มันเอาไป <b>'ท่องจำข้อมูลขยะ (Noise)'</b> สังเกตว่าเส้นสีม่วงจะหยักและแกว่งตามเส้นสีเทาเป๊ะๆ! (ถ้าไปเจอข้อมูลชุดใหม่ มันจะทายผิดแน่นอน) <b>วิธีแก้: เพิ่ม Dropout ให้มันลืมบ้าง</b>");
+                fbBox.style.backgroundColor = '#fdf2f8'; fbBox.style.borderLeftColor = 'var(--danger)';
+            } else if (timesteps < 8) {
+                fb.push("🐢 <b>Lagging (Timesteps ต่ำไป):</b> AI มองอดีตได้สั้นเกินไป ทำให้จับรูปแบบคลื่นไม่ทัน สังเกตว่าเส้นสีม่วงจะ <b>'วิ่งตามหลัง (Shift right)'</b> เส้นสีเทาเสมอ เหมือนกะจังหวะพลาด");
+                fbBox.style.backgroundColor = '#fef3c7'; fbBox.style.borderLeftColor = 'var(--warning)';
+            } else if (dropout > 0.4) {
+                fb.push("⚠️ <b>Amnesia (Dropout สูงเกินไป):</b> คุณสั่งให้มันลืมข้อมูลมากเกินไประหว่างการฝึก สมองมันเลยปะติดปะต่อเรื่องราวไม่ได้ เส้นพยากรณ์จึงแบนราบลง");
+                fbBox.style.backgroundColor = '#fef3c7'; fbBox.style.borderLeftColor = 'var(--warning)';
+            } else {
+                fb.push("🏆 <b>Generalized (สมดุลยอดเยี่ยม):</b> เส้นพยากรณ์จับจังหวะคลื่นได้พอดี และตัดข้อมูลขยะ (รอยหยักยึกยือ) ทิ้งไปได้ นี่คือโมเดล LSTM ที่พร้อมนำไปใช้งานจริงครับ!");
+                fbBox.style.backgroundColor = '#dcfce7'; fbBox.style.borderLeftColor = 'var(--success)';
+            }
+
+            fbBox.innerHTML = fb.join("<br>");
+        }
+
+        // Initialize
+        generateData();
+    </script>
+</body>
+</html>
