@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ensemble Learning - ภารกิจนักสืบ AI</title>
+    <style>
+        :root {
+            --bagging: #10b981; /* Green */
+            --boosting: #f97316; /* Orange */
+            --stacking: #6366f1; /* Indigo */
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { text-align: center; color: #1e293b; margin-bottom: 5px; }
+        .subtitle { text-align: center; color: #64748b; max-width: 800px; margin-bottom: 30px; line-height: 1.6; }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            gap: 30px;
+        }
+
+        /* Section Styles */
+        .ensemble-section {
+            background: var(--card);
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .sec-bagging { border-top: 6px solid var(--bagging); }
+        .sec-boosting { border-top: 6px solid var(--boosting); }
+        .sec-stacking { border-top: 6px solid var(--stacking); }
+
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sec-bagging .section-title { color: var(--bagging); }
+        .sec-boosting .section-title { color: var(--boosting); }
+        .sec-stacking .section-title { color: var(--stacking); }
+
+        .desc-box {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        /* Animation Area */
+        .action-area {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            min-height: 200px;
+            background: #f8fafc;
+            border: 2px dashed #cbd5e1;
+            border-radius: 12px;
+            padding: 20px;
+            position: relative;
+        }
+
+        .btn-run {
+            display: block;
+            margin: 20px auto 0;
+            padding: 12px 30px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn-run:hover { transform: scale(1.05); }
+        .btn-bagging { background: var(--bagging); }
+        .btn-boosting { background: var(--boosting); }
+        .btn-stacking { background: var(--stacking); }
+
+        /* Actors (Detectives) */
+        .actor {
+            text-align: center;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: all 0.5s ease-out;
+            width: 120px;
+        }
+        .actor.visible { opacity: 1; transform: translateY(0); }
+        
+        .actor-icon { font-size: 3rem; margin-bottom: 10px; }
+        .actor-name { font-weight: bold; font-size: 0.9rem; margin-bottom: 5px; color: #475569;}
+        .actor-bubble {
+            background: white;
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 8px;
+            font-size: 0.85rem;
+            font-weight: bold;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        /* Specific Layouts */
+        /* Boosting: Sequential */
+        .boosting-path {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            width: 100%;
+            justify-content: center;
+        }
+        .arrow { font-size: 1.5rem; color: #94a3b8; opacity: 0; transition: opacity 0.3s; }
+        .arrow.visible { opacity: 1; }
+
+        /* Stacking: Hierarchy */
+        .stacking-grid {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+            width: 100%;
+        }
+        .stacking-row {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+        }
+
+        /* Summary Table */
+        .summary-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1);
+        }
+        .summary-table th, .summary-table td {
+            padding: 15px;
+            text-align: left;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .summary-table th { background: #1e293b; color: white; }
+        .summary-table tr:hover { background: #f8fafc; }
+
+    </style>
+</head>
+<body>
+
+    <h1>🧩 บทสรุป Ensemble Learning</h1>
+    <div class="subtitle">
+        เรียนรู้ความแตกต่างของการสร้างแบบจำลอง 3 แนวทางหลัก <b>Bagging, Boosting และ Stacking</b> <br>
+        ผ่านภารกิจ: <i>"วิเคราะห์ผู้ต้องสงสัยว่าเป็นการโจมตีทางไซเบอร์หรือไม่?"</i>
+    </div>
+
+    <div class="container">
+
+        <!-- 1. Bagging -->
+        <div class="ensemble-section sec-bagging">
+            <div class="section-title">🗳️ 1. Bagging (Bootstrap Aggregation)</div>
+            <div class="desc-box">
+                <b>แนวคิด: "ประชาธิปไตย (Majority Vote)"</b> <br>
+                สร้างนักสืบฝาแฝดหลายๆ คน <b>(Parallel)</b> โดยให้แต่ละคนสุ่มดูเบาะแสคนละส่วนกัน พวกเขาทำงานพร้อมกันอย่างอิสระ ไม่คุยกัน และสุดท้ายเอาผลโหวตของทุกคนมารวมกัน (เช่น <i>Random Forest</i>)
+            </div>
+            
+            <div class="action-area" id="area-bagging">
+                <div class="actor" id="bag-1">
+                    <div class="actor-icon">🕵️‍♂️</div>
+                    <div class="actor-name">นักสืบคนที่ 1</div>
+                    <div class="actor-bubble" id="bag-bubble-1">...</div>
+                </div>
+                <div class="actor" id="bag-2">
+                    <div class="actor-icon">🕵️‍♂️</div>
+                    <div class="actor-name">นักสืบคนที่ 2</div>
+                    <div class="actor-bubble" id="bag-bubble-2">...</div>
+                </div>
+                <div class="actor" id="bag-3">
+                    <div class="actor-icon">🕵️‍♂️</div>
+                    <div class="actor-name">นักสืบคนที่ 3</div>
+                    <div class="actor-bubble" id="bag-bubble-3">...</div>
+                </div>
+            </div>
+            <button class="btn-run btn-bagging" onclick="runBagging()">▶️ จำลองการทำงาน Bagging</button>
+        </div>
+
+        <!-- 2. Boosting -->
+        <div class="ensemble-section sec-boosting">
+            <div class="section-title">🏃‍♂️ 2. Boosting</div>
+            <div class="desc-box">
+                <b>แนวคิด: "วิ่งผลัดแก้ตัว (Learn from Mistakes)"</b> <br>
+                สร้างนักสืบทำงานต่อยอดกันเป็นลำดับขั้น <b>(Sequential)</b> คนแรกทำเต็มที่ ถ้ามีจุดไหนพลาด คนที่ 2 จะเข้ามาโฟกัสแก้ไขเฉพาะจุดที่คนแรกพลาด ส่งต่อแบบนี้ไปเรื่อยๆ จนสมบูรณ์แบบ (เช่น <i>XGBoost, AdaBoost</i>)
+            </div>
+            
+            <div class="action-area">
+                <div class="boosting-path">
+                    <div class="actor" id="boo-1">
+                        <div class="actor-icon">👷‍♂️</div>
+                        <div class="actor-name">คนแรก (วางรากฐาน)</div>
+                        <div class="actor-bubble" id="boo-bubble-1">...</div>
+                    </div>
+                    <div class="arrow" id="boo-arr-1">➡️</div>
+                    <div class="actor" id="boo-2">
+                        <div class="actor-icon">🔧</div>
+                        <div class="actor-name">คนที่ 2 (อุดรอยรั่ว)</div>
+                        <div class="actor-bubble" id="boo-bubble-2">...</div>
+                    </div>
+                    <div class="arrow" id="boo-arr-2">➡️</div>
+                    <div class="actor" id="boo-3">
+                        <div class="actor-icon">✨</div>
+                        <div class="actor-name">คนที่ 3 (เก็บงานเนี๊ยบ)</div>
+                        <div class="actor-bubble" id="boo-bubble-3">...</div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-run btn-boosting" onclick="runBoosting()">▶️ จำลองการทำงาน Boosting</button>
+        </div>
+
+        <!-- 3. Stacking -->
+        <div class="ensemble-section sec-stacking">
+            <div class="section-title">🏢 3. Stacking</div>
+            <div class="desc-box">
+                <b>แนวคิด: "ผู้เชี่ยวชาญและผู้จัดการ (Meta-Learning)"</b> <br>
+                ใช้นักสืบที่ <b>เรียนจบมาคนละสายวิชา (Diverse Base Models)</b> มาวิเคราะห์ข้อมูล แล้วส่งกระดาษคำตอบไปให้ <b>"ผู้จัดการ (Meta-Model)"</b> เป็นคนพิจารณาว่าในสถานการณ์นี้ ควรเชื่อคำตอบของใครมากที่สุด!
+            </div>
+            
+            <div class="action-area">
+                <div class="stacking-grid">
+                    <!-- Base Models -->
+                    <div class="stacking-row">
+                        <div class="actor" id="stk-1">
+                            <div class="actor-icon">🌳</div>
+                            <div class="actor-name">Tree (สายตรรกะ)</div>
+                            <div class="actor-bubble" id="stk-bubble-1">...</div>
+                        </div>
+                        <div class="actor" id="stk-2">
+                            <div class="actor-icon">🧠</div>
+                            <div class="actor-name">NN (สายแพทเทิร์น)</div>
+                            <div class="actor-bubble" id="stk-bubble-2">...</div>
+                        </div>
+                        <div class="actor" id="stk-3">
+                            <div class="actor-icon">📏</div>
+                            <div class="actor-name">KNN (สายสถิติ)</div>
+                            <div class="actor-bubble" id="stk-bubble-3">...</div>
+                        </div>
+                    </div>
+                    <div class="arrow" id="stk-arr">⬇️ ส่งรีพอร์ตให้หัวหน้า ⬇️</div>
+                    <!-- Meta Model -->
+                    <div class="stacking-row">
+                        <div class="actor" id="stk-boss" style="width: 250px;">
+                            <div class="actor-icon">🤵‍♀️</div>
+                            <div class="actor-name">Meta-Model (ผู้จัดการ)</div>
+                            <div class="actor-bubble" id="stk-bubble-boss" style="background: var(--stacking); color: white;">...</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="btn-run btn-stacking" onclick="runStacking()">▶️ จำลองการทำงาน Stacking</button>
+        </div>
+
+        <!-- Summary Table -->
+        <table class="summary-table">
+            <thead>
+                <tr>
+                    <th>คุณสมบัติ</th>
+                    <th>Bagging 🗳️</th>
+                    <th>Boosting 🏃‍♂️</th>
+                    <th>Stacking 🏢</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><b>วิธีการทำงาน</b></td>
+                    <td>ทำพร้อมกัน (Parallel)</td>
+                    <td>ทำทีละขั้น (Sequential)</td>
+                    <td>แบ่งเป็นชั้น (Base & Meta)</td>
+                </tr>
+                <tr>
+                    <td><b>ความหลากหลาย (Diversity)</b></td>
+                    <td>เกิดจากการสุ่มข้อมูล (Data)</td>
+                    <td>เกิดจากการแก้จุดอ่อนตัวก่อนหน้า</td>
+                    <td>เกิดจากการใช้อัลกอริทึมคนละแบบ</td>
+                </tr>
+                <tr>
+                    <td><b>จุดประสงค์หลัก</b></td>
+                    <td>ลดความแปรปรวน (Variance / ลด Overfit)</td>
+                    <td>ลดความคลาดเคลื่อน (Bias / เพิ่มความแม่นยำ)</td>
+                    <td>ดึงจุดแข็งของหลายๆ โมเดลมารวมกัน</td>
+                </tr>
+                <tr>
+                    <td><b>ตัวอย่างอัลกอริทึม</b></td>
+                    <td>Random Forest</td>
+                    <td>XGBoost, AdaBoost, LightGBM</td>
+                    <td>Stacked Generalization</td>
+                </tr>
+            </tbody>
+        </table>
+
+    </div>
+
+    <script>
+        // Helper function for delays
+        const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+        // 1. Bagging Logic
+        async function runBagging() {
+            // Reset
+            [1, 2, 3].forEach(i => {
+                document.getElementById(`bag-${i}`).classList.remove('visible');
+                document.getElementById(`bag-bubble-${i}`).innerHTML = '...';
+                document.getElementById(`bag-bubble-${i}`).style.color = 'black';
+            });
+
+            await sleep(300);
+            
+            // All appear at the same time (Parallel)
+            [1, 2, 3].forEach(i => document.getElementById(`bag-${i}`).classList.add('visible'));
+            
+            await sleep(1000);
+            document.getElementById('bag-bubble-1').innerHTML = "👀 ดู IP: โหวต โจมตี!";
+            document.getElementById('bag-bubble-1').style.color = "red";
+            
+            document.getElementById('bag-bubble-2').innerHTML = "👀 ดู Port: โหวต ปกติ";
+            document.getElementById('bag-bubble-2').style.color = "green";
+            
+            document.getElementById('bag-bubble-3').innerHTML = "👀 ดู ความเร็ว: โหวต โจมตี!";
+            document.getElementById('bag-bubble-3').style.color = "red";
+
+            await sleep(1000);
+            // Result
+            [1, 2, 3].forEach(i => document.getElementById(`bag-bubble-${i}`).innerHTML = "<b>มติส่วนใหญ่: โจมตี!</b>");
+        }
+
+        // 2. Boosting Logic
+        async function runBoosting() {
+            // Reset
+            [1, 2, 3].forEach(i => {
+                document.getElementById(`boo-${i}`).classList.remove('visible');
+                document.getElementById(`boo-arr-${i>2?2:i}`).classList.remove('visible');
+                document.getElementById(`boo-bubble-${i}`).innerHTML = '...';
+            });
+
+            await sleep(300);
+
+            // Sequential appearance
+            document.getElementById('boo-1').classList.add('visible');
+            await sleep(800);
+            document.getElementById('boo-bubble-1').innerHTML = "เดาว่าปกติ (พลาดไป 40%)";
+            
+            await sleep(500);
+            document.getElementById('boo-arr-1').classList.add('visible');
+            
+            await sleep(500);
+            document.getElementById('boo-2').classList.add('visible');
+            await sleep(800);
+            document.getElementById('boo-bubble-2').innerHTML = "แก้จุดพลาด: เพิ่มความเสี่ยง 30%";
+
+            await sleep(500);
+            document.getElementById('boo-arr-2').classList.add('visible');
+
+            await sleep(500);
+            document.getElementById('boo-3').classList.add('visible');
+            await sleep(800);
+            document.getElementById('boo-bubble-3').innerHTML = "แก้จุดพลาดที่เหลือ: ฟันธง โจมตี!";
+        }
+
+        // 3. Stacking Logic
+        async function runStacking() {
+            // Reset
+            [1, 2, 3].forEach(i => {
+                document.getElementById(`stk-${i}`).classList.remove('visible');
+                document.getElementById(`stk-bubble-${i}`).innerHTML = '...';
+            });
+            document.getElementById('stk-arr').classList.remove('visible');
+            document.getElementById('stk-boss').classList.remove('visible');
+            document.getElementById('stk-bubble-boss').innerHTML = 'รอรีพอร์ต...';
+
+            await sleep(300);
+
+            // Experts analyze
+            [1, 2, 3].forEach(i => document.getElementById(`stk-${i}`).classList.add('visible'));
+            await sleep(1000);
+            document.getElementById('stk-bubble-1').innerHTML = "ตอบ: ปกติ";
+            document.getElementById('stk-bubble-2').innerHTML = "ตอบ: ปกติ";
+            document.getElementById('stk-bubble-3').innerHTML = "ตอบ: โจมตี";
+
+            await sleep(800);
+            document.getElementById('stk-arr').classList.add('visible');
+            
+            await sleep(800);
+            document.getElementById('stk-boss').classList.add('visible');
+            
+            await sleep(1200);
+            document.getElementById('stk-bubble-boss').innerHTML = "วิเคราะห์: สายสถิติ(KNN) มักจะทายถูกในเคสแบบนี้ <br><b>ฉันขอเชื่อ KNN! (โจมตี)</b>";
+        }
+    </script>
+</body>
+</html>
