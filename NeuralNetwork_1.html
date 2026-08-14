@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network - โรงงานสมองกล</title>
+    <style>
+        :root {
+            --primary: #6366f1; /* Indigo */
+            --secondary: #3b82f6; /* Blue */
+            --success: #10b981; /* Green */
+            --danger: #ef4444; /* Red */
+            --warning: #f59e0b; /* Orange */
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            flex: 1;
+            min-width: 350px;
+            background: var(--card);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .step-btn {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #cbd5e1;
+            background: white;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: #475569;
+            cursor: pointer;
+            text-align: left;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .step-btn:hover { border-color: var(--primary); background: #eff6ff; }
+        .step-btn.active {
+            background: var(--primary);
+            color: white;
+            border-color: var(--primary);
+            transform: scale(1.02);
+            box-shadow: 0 4px 6px rgba(99, 102, 241, 0.2);
+        }
+
+        .explanation-box {
+            margin-top: 15px;
+            padding: 15px;
+            background: #eff6ff;
+            border-left: 5px solid var(--primary);
+            border-radius: 8px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            min-height: 250px;
+        }
+
+        .highlight { color: var(--primary); font-weight: bold; }
+        .keyword { background: #dbeafe; padding: 2px 6px; border-radius: 4px; color: #1e3a8a; font-family: monospace; font-weight: bold;}
+
+        /* Visualization Panel */
+        .plot-panel {
+            flex: 1.5;
+            min-width: 500px;
+            background: var(--card);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+        }
+
+        canvas {
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 2px solid #e2e8f0;
+            width: 100%;
+            height: 400px;
+        }
+
+        /* Activation Mini Game */
+        .activation-game {
+            width: 100%;
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 15px;
+            display: none; /* โชว์เฉพาะสเต็ป 2 */
+            box-sizing: border-box;
+        }
+        .act-controls { display: flex; gap: 10px; margin-bottom: 10px; }
+        .act-btn { flex: 1; padding: 8px; border: 1px solid #cbd5e1; border-radius: 6px; cursor: pointer; background: white; font-weight: bold; }
+        .act-btn.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .act-result { text-align: center; font-size: 1.2rem; font-weight: bold; margin-top: 10px; color: var(--secondary); }
+
+    </style>
+</head>
+<body>
+
+    <h1>🧠 Neural Network: โรงงานแยกรูป หมา/แมว</h1>
+    <div class="subtitle">
+        ทำความเข้าใจศัพท์พื้นฐานของ <b>Deep Learning</b> ผ่านกระบวนการทำงานของโรงงานสมองกล<br>
+        คลิกปุ่มด้านซ้ายทีละขั้นตอน เพื่อดูการส่งสัญญาณและเรียนรู้ของ AI ครับ!
+    </div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h3 style="margin: 0; color: #334155;">ขั้นตอนการทำงาน (Workflow)</h3>
+            
+            <button class="step-btn active" id="btn-1" onclick="setStep(1)">
+                <span>1. แนะนำพนักงาน (Perceptron & MLP)</span> <span>▶</span>
+            </button>
+            <button class="step-btn" id="btn-2" onclick="setStep(2)">
+                <span>2. ทำงาน & กรองข้อมูล (Forward Prop & Activation)</span> <span>▶</span>
+            </button>
+            <button class="step-btn" id="btn-3" onclick="setStep(3)">
+                <span>3. ตรวจข้อผิดพลาด (Loss Function)</span> <span>▶</span>
+            </button>
+            <button class="step-btn" id="btn-4" onclick="setStep(4)">
+                <span>4. ส่งคำวิจารณ์กลับ (Backpropagation)</span> <span>▶</span>
+            </button>
+            <button class="step-btn" id="btn-5" onclick="setStep(5)">
+                <span>5. ปรับปรุงเครื่องจักร (Gradient Descent & Optimizer)</span> <span>▶</span>
+            </button>
+
+            <!-- กล่องอธิบายความรู้ -->
+            <div class="explanation-box" id="desc-box">
+                <!-- Content will be injected by JS -->
+            </div>
+
+            <!-- มินิเกมทดสอบ Activation Function -->
+            <div class="activation-game" id="activation-game">
+                <div style="font-weight: bold; margin-bottom: 5px;">ลองเล่น Activation Function (ตัวกรองสัญญาณ):</div>
+                <div class="act-controls">
+                    <button class="act-btn active" id="act-relu" onclick="testActivation('relu')">ReLU</button>
+                    <button class="act-btn" id="act-sig" onclick="testActivation('sigmoid')">Sigmoid</button>
+                </div>
+                <div>
+                    สัญญาณเข้า (Input x): <span id="act-in-val">0</span>
+                    <input type="range" id="act-slider" min="-10" max="10" step="0.1" value="0" style="width: 100%;" oninput="calculateActivation()">
+                </div>
+                <div class="act-result">
+                    ผลลัพธ์ (Output y) = <span id="act-out-val">0.00</span>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Visualization Panel -->
+        <div class="plot-panel">
+            <div style="width: 100%; display: flex; justify-content: space-between; padding: 0 20px; font-weight: bold; color: #64748b; margin-bottom: 5px; box-sizing: border-box;">
+                <span>Input Layer<br>(รับข้อมูลรูปภาพ)</span>
+                <span>Hidden Layer<br>(พนักงานวิเคราะห์)</span>
+                <span>Output Layer<br>(ฟันธงผลลัพธ์)</span>
+            </div>
+            
+            <canvas id="nnCanvas" width="600" height="400"></canvas>
+            
+            <div id="result-status" style="margin-top: 15px; font-size: 1.2rem; font-weight: bold; color: var(--text); min-height: 30px;">
+                รอรับข้อมูล...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Data for explanations
+        const explanations = {
+            1: `<b>👋 แนะนำโครงสร้าง:</b><br><br>
+                <span class="keyword">Perceptron</span> คือ "พนักงาน 1 คน" (วงกลม 1 วง) มีหน้าที่รับข้อมูล เอามาคูณน้ำหนัก (ความสำคัญ) แล้วส่งผลลัพธ์ออกไป<br><br>
+                <span class="keyword">MLP (Multilayer Perceptron)</span> คือการเอาพนักงานหลายๆ คนมาจัดเรียงเป็นชั้นๆ (Layers) ดังภาพ: ชั้นรับข้อมูล (Input) ชั้นซ่อนเร้นสำหรับคิดวิเคราะห์ (Hidden) และชั้นแสดงผล (Output)`,
+            
+            2: `<b>🚀 เริ่มการทำงาน:</b><br><br>
+                <span class="keyword">Forward Propagation</span> คือการไหลของข้อมูลจากซ้ายไปขวา พนักงานจะส่งต่อตัวเลขไปเรื่อยๆ จนถึงคำตอบสุดท้าย<br><br>
+                <span class="keyword">Activation Function</span> คือ "กฎการปล่อยผ่านสัญญาณ" ของพนักงานแต่ละคน (ลองเล่นกล่องด้านล่าง):<br>
+                - <b>ReLU:</b> ถ้าค่าติดลบ ให้ตอบ 0 (เงียบ) ถ้าค่าเป็นบวก ให้ปล่อยผ่านตามนั้น (นิยมใช้ใน Hidden Layer)<br>
+                - <b>Sigmoid:</b> บีบทุกตัวเลขให้อยู่ระหว่าง 0 ถึง 1 (ใช้แปลงเป็น %)<br>
+                - <b>Softmax:</b> ใช้ใน Output Layer เพื่อแปลงคะแนนของหมา/แมว ให้รวมกันได้ 100% พอดี!`,
+            
+            3: `<b>📉 ตรวจผลงาน:</b><br><br>
+                <span class="keyword">Loss Function</span> (หรือ Cost Function) คือ "ผู้จัดการโรงงาน" ที่คอยตรวจคำตอบ<br><br>
+                เช่น AI ทายว่าเป็น แมว 80% หมา 20% แต่ความจริงรูปนี้คือ <b>"หมา (100%)"</b><br>
+                ผู้จัดการจะเอาคำตอบมาลบกับความจริง เพื่อหา <b>"ค่าความผิดพลาด (Error/Loss)"</b> ยิ่งค่านี้สูง แปลว่าโรงงานเรายังทำงานห่วยอยู่ ต้องรีบแก้ไข!`,
+            
+            4: `<b>⏪ ส่งคำวิจารณ์กลับ:</b><br><br>
+                <span class="keyword">Backpropagation</span> เมื่อรู้ว่าผิดพลาด ผู้จัดการจะเดินย้อนกลับจากขวามาซ้าย (เส้นสีแดง)<br><br>
+                เพื่อไปบอกพนักงานแต่ละคนว่า <i>"ที่ทายผิดเป็นเพราะพวกคุณให้น้ำหนัก (Weights) ข้อมูลผิดจุด!"</i> เป็นการคำนวณหาว่าใครต้องรับผิดชอบต่อข้อผิดพลาดนี้มากน้อยแค่ไหน (ใช้คณิตศาสตร์เรื่อง Chain Rule/Derivatives)`,
+            
+            5: `<b>🔧 ปรับปรุงเครื่องจักร:</b><br><br>
+                <span class="keyword">Gradient Descent</span> คือวิธีการค่อยๆ หมุนปรับวาล์ว (ค่าน้ำหนัก) ทีละนิด เพื่อให้ข้อผิดพลาด (Loss) ในรอบหน้าลดต่ำลง<br><br>
+                <span class="keyword">Optimizer</span> (เช่น อัลกอริทึม Adam, SGD) คือ "เข็มทิศความฉลาด" ที่ช่วยบอกทิศทางว่าควรหมุนวาล์วไปทางไหน และควรหมุนแรงหรือเบา เพื่อให้โรงงานฉลาดขึ้นไวที่สุดโดยไม่พังซะก่อน`
+        };
+
+        let currentStep = 1;
+        let animationId;
+        
+        // Canvas Setup
+        const canvas = document.getElementById('nnCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        // Neural Network Structure (X, Y coordinates)
+        const layers = [
+            [{x: 100, y: 150}, {x: 100, y: 250}], // Input (2 nodes)
+            [{x: 300, y: 100}, {x: 300, y: 200}, {x: 300, y: 300}], // Hidden (3 nodes)
+            [{x: 500, y: 150, label: 'แมว'}, {x: 500, y: 250, label: 'หมา'}] // Output (2 nodes)
+        ];
+
+        // Edges
+        const edges = [];
+        for(let l=0; l<layers.length-1; l++){
+            for(let n1 of layers[l]){
+                for(let n2 of layers[l+1]){
+                    edges.push({from: n1, to: n2, weight: 2}); // weight = line thickness
+                }
+            }
+        }
+
+        // Animation Particles
+        let particles = [];
+
+        function drawNetwork() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw Edges
+            edges.forEach(edge => {
+                ctx.beginPath();
+                ctx.moveTo(edge.from.x, edge.from.y);
+                ctx.lineTo(edge.to.x, edge.to.y);
+                
+                // Color based on step
+                if (currentStep === 4) ctx.strokeStyle = 'rgba(239, 68, 68, 0.3)'; // Red for backprop
+                else if (currentStep === 5) ctx.strokeStyle = 'rgba(16, 185, 129, 0.5)'; // Green for update
+                else ctx.strokeStyle = 'rgba(203, 213, 225, 0.8)'; // Gray normally
+                
+                ctx.lineWidth = edge.weight;
+                ctx.stroke();
+            });
+
+            // Draw Particles
+            particles.forEach(p => {
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, 5, 0, Math.PI * 2);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+            });
+
+            // Draw Nodes
+            layers.forEach((layer, lIdx) => {
+                layer.forEach(node => {
+                    ctx.beginPath();
+                    ctx.arc(node.x, node.y, 20, 0, Math.PI * 2);
+                    
+                    if (lIdx === 0) ctx.fillStyle = '#bae6fd';
+                    else if (lIdx === 1) ctx.fillStyle = '#ddd6fe';
+                    else ctx.fillStyle = '#dcfce7';
+                    
+                    ctx.fill();
+                    ctx.strokeStyle = '#64748b';
+                    ctx.lineWidth = 3;
+                    ctx.stroke();
+
+                    // Output Labels
+                    if (node.label) {
+                        ctx.fillStyle = '#1e293b';
+                        ctx.font = '14px Arial';
+                        ctx.textAlign = 'left';
+                        ctx.fillText(node.label, node.x + 30, node.y + 5);
+                    }
+                });
+            });
+        }
+
+        function animate() {
+            // Update Particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                let p = particles[i];
+                p.progress += p.speed;
+                
+                if (p.progress >= 1) {
+                    particles.splice(i, 1);
+                    continue;
+                }
+
+                // Interpolate position
+                p.x = p.from.x + (p.to.x - p.from.x) * p.progress;
+                p.y = p.from.y + (p.to.y - p.from.y) * p.progress;
+            }
+
+            // Spawn Particles based on step
+            if (Math.random() < 0.1) {
+                if (currentStep === 2) {
+                    // Forward: Left to Right
+                    let edge = edges[Math.floor(Math.random() * edges.length)];
+                    particles.push({ from: edge.from, to: edge.to, x: edge.from.x, y: edge.from.y, progress: 0, speed: 0.02, color: '#3b82f6' });
+                } else if (currentStep === 4) {
+                    // Backward: Right to Left
+                    let edge = edges[Math.floor(Math.random() * edges.length)];
+                    particles.push({ from: edge.to, to: edge.from, x: edge.to.x, y: edge.to.y, progress: 0, speed: 0.02, color: '#ef4444' });
+                }
+            }
+
+            // Wiggle weights for step 5
+            if (currentStep === 5) {
+                edges.forEach(e => {
+                    if (Math.random() < 0.05) e.weight = Math.random() * 4 + 1;
+                });
+            } else {
+                edges.forEach(e => e.weight = 2); // Reset
+            }
+
+            drawNetwork();
+            animationId = requestAnimationFrame(animate);
+        }
+
+        // Handle UI Steps
+        function setStep(step) {
+            currentStep = step;
+            
+            // Update Buttons
+            document.querySelectorAll('.step-btn').forEach((btn, idx) => {
+                if(idx + 1 === step) btn.classList.add('active');
+                else btn.classList.remove('active');
+            });
+
+            // Update Description
+            document.getElementById('desc-box').innerHTML = explanations[step];
+
+            // Toggle Activation Game
+            document.getElementById('activation-game').style.display = (step === 2) ? 'block' : 'none';
+
+            // Update Status Text
+            const statusBox = document.getElementById('result-status');
+            if (step === 1) statusBox.innerHTML = "รอรับข้อมูลรูปภาพ...";
+            if (step === 2) statusBox.innerHTML = "<span style='color: var(--secondary)'>กำลังส่งต่อข้อมูล (Forward Propagation)...</span>";
+            if (step === 3) statusBox.innerHTML = "ผลทำนาย: แมว 80%, หมา 20% <br><span style='color: var(--danger)'>ความจริงคือ: หมา (Loss พุ่งสูงปรี๊ด!)</span>";
+            if (step === 4) statusBox.innerHTML = "<span style='color: var(--danger)'>กำลังส่งข้อผิดพลาดกลับไปด่าพนักงาน (Backpropagation)...</span>";
+            if (step === 5) statusBox.innerHTML = "<span style='color: var(--success)'>ปรับค่าน้ำหนัก (Weights) ใหม่ด้วย Optimizer ให้ฉลาดขึ้น!</span>";
+
+            particles = []; // Clear particles on step change
+        }
+
+        // Activation Mini Game Logic
+        let activeFunc = 'relu';
+        
+        function testActivation(func) {
+            activeFunc = func;
+            document.getElementById('act-relu').classList.remove('active');
+            document.getElementById('act-sig').classList.remove('active');
+            if(func === 'relu') document.getElementById('act-relu').classList.add('active');
+            else document.getElementById('act-sig').classList.add('active');
+            calculateActivation();
+        }
+
+        function calculateActivation() {
+            let x = parseFloat(document.getElementById('act-slider').value);
+            document.getElementById('act-in-val').innerText = x.toFixed(1);
+            
+            let y = 0;
+            if (activeFunc === 'relu') {
+                y = Math.max(0, x);
+            } else if (activeFunc === 'sigmoid') {
+                y = 1 / (1 + Math.exp(-x));
+            }
+            
+            document.getElementById('act-out-val').innerText = y.toFixed(2);
+        }
+
+        // Initialize
+        setStep(1);
+        calculateActivation();
+        animate();
+
+    </script>
+</body>
+</html>
