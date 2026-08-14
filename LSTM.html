@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LSTM Interactive Game - สายพานความจำ</title>
+    <style>
+        :root {
+            --primary: #8b5cf6; /* Purple */
+            --input-gate: #10b981; /* Green */
+            --forget-gate: #ef4444; /* Red */
+            --keep-gate: #3b82f6; /* Blue */
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --memory-belt: #fef3c7; /* Yellowish */
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .game-container {
+            background: var(--card);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        /* ประโยคที่กำลังอ่าน */
+        .sentence-box {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 1.2rem;
+            line-height: 1.8;
+            text-align: center;
+            border: 2px dashed #cbd5e1;
+        }
+
+        .word-badge {
+            display: inline-block;
+            padding: 5px 12px;
+            background: white;
+            border-radius: 20px;
+            margin: 0 4px;
+            color: #94a3b8;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s;
+        }
+
+        .word-badge.active {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.2);
+            font-weight: bold;
+            border-color: var(--primary);
+            box-shadow: 0 4px 6px rgba(139, 92, 246, 0.3);
+        }
+
+        .word-badge.passed {
+            background: #e2e8f0;
+            color: #64748b;
+        }
+
+        /* สายพานความจำ (Cell State) */
+        .cell-state-box {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background: var(--memory-belt);
+            border-radius: 12px;
+            border: 4px solid #f59e0b;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cell-state-title {
+            font-weight: bold;
+            color: #b45309;
+            margin-bottom: 10px;
+            font-size: 1.1rem;
+        }
+
+        .memory-content {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #1e3a8a;
+            min-height: 40px;
+            transition: all 0.3s;
+        }
+
+        /* ปุ่มควบคุม (Gates) */
+        .gates-control {
+            display: flex;
+            justify-content: space-around;
+            gap: 15px;
+        }
+
+        .gate-btn {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s, filter 0.2s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 5px;
+            color: white;
+        }
+        .gate-btn:hover { transform: translateY(-5px); filter: brightness(1.1); }
+        .gate-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+        .btn-input { background-color: var(--input-gate); }
+        .btn-forget { background-color: var(--forget-gate); }
+        .btn-keep { background-color: var(--keep-gate); }
+
+        /* ผลลัพธ์ */
+        .result-overlay {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            animation: fadeIn 0.5s;
+        }
+        
+        .result-overlay.success { background: #dcfce7; border: 2px solid var(--input-gate); }
+        .result-overlay.fail { background: #fee2e2; border: 2px solid var(--forget-gate); }
+
+        .result-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 10px; }
+        .result-desc { font-size: 1.1rem; color: #334155; }
+
+        .explanation {
+            margin-top: 25px;
+            padding: 20px;
+            background: #eff6ff;
+            border-left: 5px solid var(--primary);
+            border-radius: 0 12px 12px 0;
+            font-size: 0.95rem;
+            color: #1e3a8a;
+            line-height: 1.6;
+            width: 100%;
+            max-width: 800px;
+            box-sizing: border-box;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>🧠 เกมผู้พิทักษ์สายพานความจำ (LSTM)</h1>
+    <div class="subtitle">
+        AI กำลังอ่านนิทานและต้องทำนายคำศัพท์คำสุดท้าย แต่สมองของมันมี <b>"สายพานความจำ (Cell State)"</b> ที่จุคำได้แค่คำเดียว!<br>
+        ภารกิจของคุณคือทำหน้าที่เป็น <b>ประตู (Gates)</b> คอยเลือกว่าคำไหนควร "จำ" และคำไหนควร "ปล่อยผ่าน/ลืม" เพื่อเอาไปใช้ตอบคำถามตอนจบ!
+    </div>
+
+    <div class="game-container">
+        
+        <div class="sentence-box" id="sentence-container">
+            <!-- Words will be injected here -->
+        </div>
+
+        <div class="cell-state-box">
+            <div class="cell-state-title">📦 สายพานความจำระยะยาว (Long-Term Cell State)</div>
+            <div class="memory-content" id="memory-display">(ว่างเปล่า)</div>
+        </div>
+
+        <div class="gates-control">
+            <button class="gate-btn btn-forget" id="btn-forget" onclick="handleGate('forget')">
+                <span style="font-size: 1.5rem;">🗑️</span>
+                Forget Gate
+                <span style="font-size: 0.8rem; font-weight: normal;">(ล้างความจำทิ้ง)</span>
+            </button>
+            <button class="gate-btn btn-keep" id="btn-keep" onclick="handleGate('keep')">
+                <span style="font-size: 1.5rem;">⏭️</span>
+                Keep / Ignore
+                <span style="font-size: 0.8rem; font-weight: normal;">(ปล่อยผ่าน/รักษาของเดิม)</span>
+            </button>
+            <button class="gate-btn btn-input" id="btn-input" onclick="handleGate('input')">
+                <span style="font-size: 1.5rem;">📥</span>
+                Input Gate
+                <span style="font-size: 0.8rem; font-weight: normal;">(บันทึกคำนี้ลงสายพาน)</span>
+            </button>
+        </div>
+
+        <div class="result-overlay" id="result-box">
+            <div class="result-title" id="result-title"></div>
+            <div class="result-desc" id="result-desc"></div>
+            <button onclick="initGame()" style="margin-top: 15px; padding: 10px 20px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">🔄 เล่นอีกครั้ง</button>
+        </div>
+
+    </div>
+
+    <div class="explanation">
+        <strong>💡 เกิดอะไรขึ้นในเกมนี้? (หลักการของ LSTM)</strong><br>
+        <ul>
+            <li><b>สายพานความจำ (Cell State):</b> คือเส้นทางด่วนที่ยอมให้ข้อมูลสำคัญเดินทางข้ามเวลาจากต้นประโยคไปท้ายประโยคได้โดยไม่สูญหาย (ในเกมคือกล่องสีเหลือง)</li>
+            <li><b>Forget Gate (ประตูลืม):</b> ถ้ามีบริบทใหม่เข้ามา (เช่น ตัวละครเปลี่ยน) AI จะสั่งให้ Forget Gate ทำงาน เพื่อเคลียร์ความจำเก่าทิ้ง ป้องกันความสับสน</li>
+            <li><b>Input Gate (ประตูจำ):</b> เมื่อเจอ Key word สำคัญ AI จะเปิดประตูนี้เพื่อนำข้อมูลใหม่ไปวางไว้บนสายพานความจำ</li>
+            <li><i>โมเดลรุ่นเก่าอย่าง RNN ไม่มีสายพานนี้ มันจะจำได้แค่คำล่าสุด (เช่น จำได้แค่คำว่า "ซูชิ") ทำให้มันตอบคำถามเรื่อง "ภาษา" ไม่ได้ นี่คือความเจ๋งของ LSTM ครับ!</i></li>
+        </ul>
+    </div>
+
+    <script>
+        // เนื้อเรื่อง
+        const story = [
+            { word: "ฉันเกิดที่", isTarget: false },
+            { word: "ประเทศญี่ปุ่น", isTarget: true }, // Key info 1
+            { word: "ตอนเด็กๆ", isTarget: false },
+            { word: "ฉันชอบไป", isTarget: false },
+            { word: "กินซูชิ", isTarget: false }, // Noise
+            { word: "ที่ตลาด", isTarget: false },
+            { word: "ดังนั้นฉันจึงพูดภาษา", isTarget: false, isTrigger: true },
+            { word: "[_____]", isTarget: false, isEnd: true }
+        ];
+
+        let currentIndex = 0;
+        let memory = "(ว่างเปล่า)";
+
+        function initGame() {
+            currentIndex = 0;
+            memory = "(ว่างเปล่า)";
+            
+            document.getElementById('result-box').style.display = 'none';
+            document.getElementById('btn-forget').disabled = false;
+            document.getElementById('btn-keep').disabled = false;
+            document.getElementById('btn-input').disabled = false;
+            
+            updateMemoryDisplay();
+            renderSentence();
+        }
+
+        function renderSentence() {
+            const container = document.getElementById('sentence-container');
+            container.innerHTML = '';
+
+            story.forEach((item, index) => {
+                const span = document.createElement('span');
+                span.innerText = item.word;
+                span.className = 'word-badge';
+                
+                if (index < currentIndex) {
+                    span.classList.add('passed');
+                } else if (index === currentIndex) {
+                    span.classList.add('active');
+                }
+
+                container.appendChild(span);
+            });
+
+            // ตรวจสอบเงื่อนไขจบเกม (มาถึงคำทำนาย)
+            if (story[currentIndex].isEnd) {
+                endGame();
+            }
+        }
+
+        function updateMemoryDisplay() {
+            const display = document.getElementById('memory-display');
+            display.innerText = memory;
+            // Animation เล็กน้อย
+            display.style.transform = 'scale(1.1)';
+            setTimeout(() => display.style.transform = 'scale(1)', 200);
+        }
+
+        function handleGate(action) {
+            const currentWord = story[currentIndex].word;
+
+            if (action === 'forget') {
+                memory = "(ว่างเปล่า)";
+            } else if (action === 'input') {
+                memory = currentWord;
+            } else if (action === 'keep') {
+                // ไม่ทำอะไรกับ memory รักษาของเดิมไว้
+            }
+
+            updateMemoryDisplay();
+            currentIndex++;
+            renderSentence();
+        }
+
+        function endGame() {
+            // ปิดปุ่ม
+            document.getElementById('btn-forget').disabled = true;
+            document.getElementById('btn-keep').disabled = true;
+            document.getElementById('btn-input').disabled = true;
+
+            const resultBox = document.getElementById('result-box');
+            const title = document.getElementById('result-title');
+            const desc = document.getElementById('result-desc');
+
+            resultBox.style.display = 'block';
+
+            // Output Gate Logic (จำลองการทายผลจาก Cell State)
+            if (memory === "ประเทศญี่ปุ่น") {
+                resultBox.className = 'result-overlay success';
+                title.innerText = `🎉 ทายถูก! คำตอบคือ "ภาษาญี่ปุ่น"`;
+                desc.innerHTML = `เก่งมาก! คุณรักษาคำว่า <b>"ประเทศญี่ปุ่น"</b> ไว้บนสายพานความจำได้จนถึงท้ายประโยค ทำให้ AI ทายผลได้อย่างแม่นยำ!`;
+            } else if (memory === "กินซูชิ" || memory === "ที่ตลาด" || memory === "ตอนเด็กๆ" || memory !== "(ว่างเปล่า)") {
+                resultBox.className = 'result-overlay fail';
+                title.innerText = `❌ ทายผิด! AI ตอบว่า "ภาษา${memory}"`;
+                desc.innerHTML = `แย่แล้ว! คุณเผลอเอาข้อมูลขยะ (Noise) อย่าง <b>"${memory}"</b> ไปใส่ในสายพานความจำ ทำให้ AI สับสนและทายผลออกมาตลกๆ`;
+            } else {
+                resultBox.className = 'result-overlay fail';
+                title.innerText = `❌ ทายผิด! AI ไม่รู้จะตอบอะไร`;
+                desc.innerHTML = `คุณกดลืม (Forget) จนสายพานว่างเปล่า AI เลยไม่มีข้อมูลระยะยาวเหลือให้ทายผลเลย!`;
+            }
+        }
+
+        // เริ่มเกมครั้งแรก
+        initGame();
+    </script>
+</body>
+</html>
