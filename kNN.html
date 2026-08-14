@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>kNN Interactive Game - เรดาร์จับผิดพฤติกรรม</title>
+    <style>
+        :root {
+            --primary: #3b82f6; /* Blue */
+            --success: #22c55e; /* Green for Normal */
+            --danger: #ef4444; /* Red for Attack */
+            --target: #8b5cf6; /* Purple for Unknown */
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 800px;
+            line-height: 1.6;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1100px;
+            justify-content: center;
+        }
+
+        /* ส่วนควบคุมและอธิบาย */
+        .control-panel {
+            flex: 1;
+            min-width: 300px;
+            max-width: 400px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .param-group {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+        }
+
+        .param-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .param-val {
+            background: var(--primary);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .instructions {
+            font-size: 0.95rem;
+            color: #475569;
+            background: #eff6ff;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #bfdbfe;
+        }
+
+        .result-box {
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: 2px dashed #cbd5e1;
+            background: #f8fafc;
+            color: #64748b;
+            transition: all 0.3s;
+        }
+
+        .vote-row {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 15px;
+            font-size: 1rem;
+        }
+
+        .vote-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .vote-count {
+            font-size: 1.5rem;
+            font-weight: bold;
+        }
+
+        /* ส่วนแสดงกราฟกึ่งจำลอง */
+        .plot-panel {
+            width: 600px;
+            height: 600px;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            cursor: crosshair;
+            overflow: hidden;
+            border: 2px solid #e2e8f0;
+        }
+
+        /* Grid lines */
+        .plot-panel::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                linear-gradient(#e2e8f0 1px, transparent 1px),
+                linear-gradient(90deg, #e2e8f0 1px, transparent 1px);
+            background-size: 50px 50px;
+            opacity: 0.5;
+            z-index: 0;
+        }
+
+        .axis-label-x {
+            position: absolute;
+            bottom: 10px;
+            right: 20px;
+            font-weight: bold;
+            color: #64748b;
+        }
+
+        .axis-label-y {
+            position: absolute;
+            top: 20px;
+            left: 10px;
+            font-weight: bold;
+            color: #64748b;
+            transform: rotate(-90deg);
+            transform-origin: left top;
+        }
+
+        /* Data Points */
+        .point {
+            position: absolute;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 2;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transition: transform 0.2s;
+        }
+
+        .point.normal { background-color: var(--success); border: 2px solid #16a34a; }
+        .point.attack { background-color: var(--danger); border: 2px solid #dc2626; }
+        
+        /* The Unknown Point placed by user */
+        .point.target {
+            background-color: var(--target);
+            border: 2px solid #6d28d9;
+            width: 20px;
+            height: 20px;
+            z-index: 4;
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.7); }
+            70% { box-shadow: 0 0 0 15px rgba(139, 92, 246, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(139, 92, 246, 0); }
+        }
+
+        /* Radar/Distance Circle */
+        .radar {
+            position: absolute;
+            border-radius: 50%;
+            background: rgba(139, 92, 246, 0.1);
+            border: 2px dashed var(--target);
+            transform: translate(-50%, -50%);
+            z-index: 1;
+            transition: width 0.4s ease-out, height 0.4s ease-out;
+            pointer-events: none;
+            display: none;
+        }
+
+        /* Highlighting nearest neighbors */
+        .point.nearest {
+            transform: translate(-50%, -50%) scale(1.5);
+            box-shadow: 0 0 10px 2px #fde047;
+            z-index: 3;
+        }
+
+        /* Legend */
+        .legend {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            font-size: 0.85rem;
+            z-index: 5;
+            border: 1px solid #e2e8f0;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+        .legend-item:last-child { margin-bottom: 0; }
+        .legend-color { width: 12px; height: 12px; border-radius: 50%; }
+
+    </style>
+</head>
+<body>
+
+    <h1>📡 k-Nearest Neighbors (kNN) Radar</h1>
+    <div class="subtitle">
+        หลักการของ kNN คือ "เราจะเป็นแบบคนที่เรารายล้อมอยู่" <br>
+        ลองคลิกวาง <b>ข้อมูลใหม่ (จุดสีม่วง)</b> ลงบนกราฟ แล้วให้ AI กางเรดาร์ค้นหา <b>เพื่อนบ้านที่ใกล้ที่สุด (k คน)</b> เพื่อโหวตว่าข้อมูลใหม่นี้ควรจัดอยู่ในกลุ่มไหน!
+    </div>
+
+    <div class="container">
+        
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="instructions">
+                <strong>🖱️ วิธีเล่น:</strong><br>
+                1. <b>คลิก</b> พื้นที่ว่างบนกราฟเพื่อวาง Network Traffic ใหม่ที่ยังไม่รู้ว่าเป็นใคร<br>
+                2. <b>เลื่อน</b> ปรับค่า k เพื่อดูว่าการเปลี่ยนจำนวนเพื่อนบ้าน ส่งผลต่อผลโหวตอย่างไร
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span>จำนวนเพื่อนบ้าน (k)</span>
+                    <span class="param-val" id="val-k">3</span>
+                </div>
+                <input type="range" id="slider-k" min="1" max="15" step="2" value="3" oninput="updateK()">
+                <small style="color: #64748b; margin-top: 5px; display: block;">
+                    * นิยมใช้ <b>เลขคี่</b> (1, 3, 5, 7...) เพื่อป้องกันผลโหวตเสมอ (Tie)
+                </small>
+            </div>
+
+            <div class="result-box" id="result-box">
+                กรุณาคลิกวางข้อมูลใหม่บนกราฟ
+                <br>เพื่อดูผลการวิเคราะห์
+            </div>
+
+            <button onclick="resetPlot()" style="padding: 10px; background: #94a3b8; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold;">
+                🔄 ล้างข้อมูลใหม่
+            </button>
+        </div>
+
+        <!-- Plot Panel -->
+        <div class="plot-panel" id="plot-area" onclick="placeTarget(event)">
+            <div class="axis-label-x">อัตราการส่งข้อมูล (Requests/sec) ➡️</div>
+            <div class="axis-label-y">ขนาดของ Packet (Bytes) ➡️</div>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--success);"></div> ผู้ใช้งานปกติ (Normal)
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--danger);"></div> การโจมตี (Attack)
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--target);"></div> <b>ข้อมูลใหม่ (Unknown)</b>
+                </div>
+            </div>
+
+            <!-- เรดาร์ (วงกลมรัศมีระยะห่าง) -->
+            <div class="radar" id="radar-circle"></div>
+
+            <!-- จุดข้อมูล (จะถูกสร้างด้วย JavaScript) -->
+            <div id="points-container"></div>
+            
+            <!-- จุดที่ User คลิกวาง -->
+            <div class="point target" id="target-point" style="display: none;"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // ข้อมูลจำลอง (Mock Data)
+        const dataPoints = [
+            // กลุ่ม Normal (ล่างซ้าย ถึง กลาง)
+            { x: 100, y: 150, type: 'normal' }, { x: 120, y: 200, type: 'normal' },
+            { x: 150, y: 120, type: 'normal' }, { x: 200, y: 250, type: 'normal' },
+            { x: 220, y: 180, type: 'normal' }, { x: 250, y: 300, type: 'normal' },
+            { x: 180, y: 350, type: 'normal' }, { x: 300, y: 200, type: 'normal' },
+            { x: 280, y: 150, type: 'normal' }, { x: 350, y: 250, type: 'normal' },
+            { x: 320, y: 350, type: 'normal' }, { x: 400, y: 300, type: 'normal' },
+            // กลุ่ม Attack (บนขวา ถึง กลาง)
+            { x: 450, y: 500, type: 'attack' }, { x: 480, y: 420, type: 'attack' },
+            { x: 500, y: 550, type: 'attack' }, { x: 550, y: 480, type: 'attack' },
+            { x: 400, y: 450, type: 'attack' }, { x: 420, y: 580, type: 'attack' },
+            { x: 380, y: 520, type: 'attack' }, { x: 520, y: 380, type: 'attack' },
+            { x: 580, y: 500, type: 'attack' }, { x: 470, y: 350, type: 'attack' },
+            // จุดที่ปะปนกัน (Noise / Overlap 영역) สร้างความสับสน
+            { x: 350, y: 400, type: 'normal' }, { x: 380, y: 380, type: 'attack' },
+            { x: 420, y: 280, type: 'attack' }, { x: 280, y: 450, type: 'normal' }
+        ];
+
+        const container = document.getElementById('points-container');
+        let currentTarget = null; // เก็บตำแหน่งที่ user คลิก {x, y}
+
+        // 1. วาดจุดข้อมูลตั้งต้นลงบนกราฟ
+        function renderPoints() {
+            container.innerHTML = '';
+            dataPoints.forEach((p, index) => {
+                const dot = document.createElement('div');
+                dot.className = `point ${p.type}`;
+                dot.style.left = `${p.x}px`;
+                dot.style.top = `${p.y}px`;
+                dot.id = `point-${index}`;
+                container.appendChild(dot);
+            });
+        }
+
+        // 2. รับ event เมื่อ user คลิกบนกราฟ
+        function placeTarget(event) {
+            // คำนวณพิกัดสัมพัทธ์ (Relative Coordinate) ภายในกล่อง
+            const plotArea = document.getElementById('plot-area');
+            const rect = plotArea.getBoundingClientRect();
+            
+            // ป้องกันการคลิกโดน legend
+            if (event.target.closest('.legend')) return;
+
+            const x = event.clientX - rect.left;
+            const y = event.clientY - rect.top;
+
+            currentTarget = { x, y };
+
+            // อัปเดต UI จุด Target
+            const targetEl = document.getElementById('target-point');
+            targetEl.style.left = `${x}px`;
+            targetEl.style.top = `${y}px`;
+            targetEl.style.display = 'block';
+
+            // เริ่มกระบวนการ kNN
+            calculateKNN();
+        }
+
+        // 3. ฟังก์ชันอัปเดตเมื่อเลื่อน Slider
+        function updateK() {
+            const k = document.getElementById('slider-k').value;
+            document.getElementById('val-k').innerText = k;
+            
+            if (currentTarget) {
+                calculateKNN();
+            }
+        }
+
+        // 4. หัวใจหลัก: อัลกอริทึม kNN
+        function calculateKNN() {
+            if (!currentTarget) return;
+
+            const k = parseInt(document.getElementById('slider-k').value);
+            
+            // ล้าง Highlight เก่า
+            document.querySelectorAll('.point.nearest').forEach(el => el.classList.remove('nearest'));
+
+            // a. คำนวณระยะห่าง (Euclidean Distance) ระหว่าง Target กับทุกจุด
+            let distances = dataPoints.map((p, index) => {
+                const dx = p.x - currentTarget.x;
+                const dy = p.y - currentTarget.y;
+                const distance = Math.sqrt(dx * dx + dy * dy); // ทฤษฎีพีทาโกรัส
+                return { id: index, type: p.type, distance: distance };
+            });
+
+            // b. เรียงลำดับจากใกล้สุด ไปไกลสุด (Ascending Sort)
+            distances.sort((a, b) => a.distance - b.distance);
+
+            // c. ตัดเอามาแค่ k อันดับแรก
+            const nearestNeighbors = distances.slice(0, k);
+
+            // d. หาว่าใครอยู่ไกลสุดในกลุ่ม k คนนี้ (เพื่อเอาระยะทางมากางวงกลมเรดาร์)
+            const maxDistanceInK = nearestNeighbors[k - 1].distance;
+
+            // กางเรดาร์
+            const radar = document.getElementById('radar-circle');
+            radar.style.left = `${currentTarget.x}px`;
+            radar.style.top = `${currentTarget.y}px`;
+            radar.style.width = `${maxDistanceInK * 2}px`;
+            radar.style.height = `${maxDistanceInK * 2}px`;
+            radar.style.display = 'block';
+
+            // นับคะแนนโหวต (Tally Votes)
+            let votes = { normal: 0, attack: 0 };
+            
+            nearestNeighbors.forEach(neighbor => {
+                // Highlight จุดที่ถูกเลือก
+                document.getElementById(`point-${neighbor.id}`).classList.add('nearest');
+                // โหวต
+                votes[neighbor.type]++;
+            });
+
+            // e. สรุปผล (Majority Vote)
+            displayResult(votes, k);
+        }
+
+        // 5. แสดงผลลัพธ์
+        function displayResult(votes, k) {
+            const resultBox = document.getElementById('result-box');
+            let finalDecision = "";
+            
+            if (votes.normal > votes.attack) {
+                finalDecision = "<span style='color: var(--success);'>✅ ผู้ใช้งานปกติ</span>";
+                resultBox.style.borderColor = "var(--success)";
+                resultBox.style.backgroundColor = "#f0fdf4";
+            } else if (votes.attack > votes.normal) {
+                finalDecision = "<span style='color: var(--danger);'>🚨 เป็นการโจมตี!</span>";
+                resultBox.style.borderColor = "var(--danger)";
+                resultBox.style.backgroundColor = "#fef2f2";
+            } else {
+                finalDecision = "<span style='color: #f59e0b;'>⚠️ เสมอกัน (ต้องการ k เป็นเลขคี่)</span>";
+                resultBox.style.borderColor = "#f59e0b";
+                resultBox.style.backgroundColor = "#fffbeb";
+            }
+
+            resultBox.innerHTML = `
+                มติจากเพื่อนบ้าน <b>${k}</b> คนรอบข้าง:<br>
+                <div class="vote-row">
+                    <div class="vote-item" style="color: var(--success);">
+                        <span>ปกติ</span>
+                        <span class="vote-count">${votes.normal}</span>
+                    </div>
+                    <div class="vote-item" style="color: var(--danger);">
+                        <span>โจมตี</span>
+                        <span class="vote-count">${votes.attack}</span>
+                    </div>
+                </div>
+                <hr style="border: 1px dashed #cbd5e1; margin: 15px 0;">
+                ผลสรุป AI ทายว่า: <br>${finalDecision}
+            `;
+        }
+
+        function resetPlot() {
+            currentTarget = null;
+            document.getElementById('target-point').style.display = 'none';
+            document.getElementById('radar-circle').style.display = 'none';
+            document.querySelectorAll('.point.nearest').forEach(el => el.classList.remove('nearest'));
+            
+            const resultBox = document.getElementById('result-box');
+            resultBox.innerHTML = "กรุณาคลิกวางข้อมูลใหม่บนกราฟ<br>เพื่อดูผลการวิเคราะห์";
+            resultBox.style.borderColor = "#cbd5e1";
+            resultBox.style.backgroundColor = "#f8fafc";
+        }
+
+        // เริ่มต้นทำงาน
+        renderPoints();
+    </script>
+</body>
+</html>
