@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Tuning - สร้างสมองเทียม</title>
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --primary-light: #ddd6fe;
+            --train-color: #3b82f6;
+            --val-color: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            flex: 1;
+            min-width: 350px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .param-group {
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 1px dashed #cbd5e1;
+        }
+        .param-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+        .param-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--primary);
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .param-value {
+            background: var(--primary);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+        }
+
+        .param-desc {
+            font-size: 0.9rem;
+            color: #475569;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        input[type="range"], select {
+            width: 100%;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        /* Visualization Panel */
+        .visualization-panel {
+            flex: 1.5;
+            min-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Network Architecture Visualizer */
+        .arch-box {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+
+        .nn-drawing {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 20px;
+            margin-top: 15px;
+            min-height: 150px;
+            background: #f1f5f9;
+            border-radius: 12px;
+            padding: 20px;
+        }
+
+        .layer-col {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .node {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .node.input { border-color: #3b82f6; }
+        .node.hidden { border-color: #8b5cf6; background: #ddd6fe; }
+        .node.output { border-color: #22c55e; }
+        
+        .layer-label { font-size: 0.8rem; font-weight: bold; color: #64748b; margin-top: 10px;}
+
+        /* Performance Chart */
+        .chart-box {
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .bar-group { margin-bottom: 20px; }
+        .bar-label { font-weight: bold; margin-bottom: 8px; display: flex; justify-content: space-between; }
+        .bar-track {
+            width: 100%; height: 30px; background: #e2e8f0; border-radius: 15px; overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%; width: 0%; transition: width 0.5s ease-out;
+            display: flex; align-items: center; justify-content: flex-end;
+            padding-right: 15px; color: white; font-weight: bold; box-sizing: border-box;
+        }
+        .fill-train { background-color: var(--train-color); }
+        .fill-val { background-color: var(--val-color); }
+
+        .feedback-box {
+            margin-top: 15px; padding: 15px; border-radius: 8px;
+            font-size: 0.95rem; line-height: 1.5; border-left: 5px solid transparent;
+            transition: all 0.3s;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>🧠 จูนพารามิเตอร์ Neural Network</h1>
+    <div class="subtitle">
+        ออกแบบโครงสร้างสมอง (Architecture) และกำหนดวิธีการเรียนรู้ (Training Params) <br>
+        เป้าหมายคือสร้าง AI ที่ทำคะแนนสอบจริง (Validation) ได้สูงที่สุด โดยไม่ท่องจำ (Overfitting)!
+    </div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h2>⚙️ ตัวแปร (Hyperparameters)</h2>
+            
+            <div style="background: #f8fafc; padding: 10px; border-radius: 8px; margin-bottom: 15px;">
+                <h3 style="margin: 0 0 10px 0; font-size: 1rem; color: #475569;">1. โครงสร้างสมอง (Architecture)</h3>
+                
+                <div class="param-group">
+                    <div class="param-header">
+                        <span>Hidden Layers (ความลึก)</span>
+                        <span class="param-value" id="val-layers">2</span>
+                    </div>
+                    <div class="param-desc">จำนวนชั้นของพนักงานวิเคราะห์ ยิ่งลึก AI ยิ่งคิดซับซ้อนและแก้โจทย์ยากๆ ได้ (แต่ถ้าโจทย์ง่ายไปแล้วใช้สมองลึก จะพัง)</div>
+                    <input type="range" id="slider-layers" min="1" max="5" step="1" value="2" oninput="updateSim()">
+                </div>
+
+                <div class="param-group">
+                    <div class="param-header">
+                        <span>Neurons per Layer (ความกว้าง)</span>
+                        <span class="param-value" id="val-neurons">16</span>
+                    </div>
+                    <div class="param-desc">จำนวนเซลล์สมองในแต่ละชั้น ยิ่งเยอะ AI ยิ่งมีพื้นที่ความจำมาก (ระวัง! ถ้าจำเก่งไป มันจะเริ่มท่องจำข้อสอบ)</div>
+                    <select id="sel-neurons" onchange="updateSim()">
+                        <option value="4">4 (สมองเล็ก)</option>
+                        <option value="16" selected>16 (สมองปานกลาง)</option>
+                        <option value="64">64 (สมองใหญ่)</option>
+                        <option value="256">256 (สมองยักษ์! ความจำดีเลิศ)</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="background: #f8fafc; padding: 10px; border-radius: 8px;">
+                <h3 style="margin: 0 0 10px 0; font-size: 1rem; color: #475569;">2. วิธีการเรียนรู้ (Training)</h3>
+
+                <div class="param-group">
+                    <div class="param-header">
+                        <span>Learning Rate (ก้าวการเรียนรู้)</span>
+                        <span class="param-value" id="val-lr">0.01</span>
+                    </div>
+                    <div class="param-desc">
+                        - <b>ค่าน้อย (0.001):</b> ค่อยๆ อ่าน ค่อยๆ จำ (ช้าแต่ชัวร์)<br>
+                        - <b>ค่ามาก (0.1):</b> รีบอ่าน กะโดดข้ามเนื้อหา (อาจจะเรียนไม่รู้เรื่อง)
+                    </div>
+                    <select id="sel-lr" onchange="updateSim()">
+                        <option value="0.001">0.001 (เต่าคลาน)</option>
+                        <option value="0.01" selected>0.01 (กำลังดี)</option>
+                        <option value="0.1">0.1 (รีบร้อนเกินไป)</option>
+                    </select>
+                </div>
+
+                <div class="param-group" style="margin-bottom: 0; border: none;">
+                    <div class="param-header">
+                        <span>Epochs (รอบการอ่านหนังสือ)</span>
+                        <span class="param-value" id="val-epochs">50</span>
+                    </div>
+                    <div class="param-desc">จำนวนรอบที่เอาข้อมูลเดิมมาให้ AI เรียนซ้ำ ยิ่งรอบเยอะยิ่งเก่ง แต่อ่านซ้ำบ่อยไปก็จะท่องจำ (Overfit)</div>
+                    <input type="range" id="slider-epochs" min="10" max="300" step="10" value="50" oninput="updateSim()">
+                </div>
+            </div>
+        </div>
+
+        <!-- Visualization Panel -->
+        <div class="visualization-panel">
+            
+            <!-- Architecture Visual -->
+            <div class="arch-box">
+                <h3 style="margin: 0; color: var(--primary);">ภาพจำลองขนาดของโครงข่าย (Network Size)</h3>
+                <div class="nn-drawing" id="nn-drawing">
+                    <!-- จะถูกวาดด้วย JS -->
+                </div>
+            </div>
+
+            <!-- Performance Chart -->
+            <div class="chart-box">
+                <h3 style="margin: 0 0 20px 0;">📊 ผลการสอบของ AI (Performance)</h3>
+                
+                <div class="bar-group">
+                    <div class="bar-label">
+                        <span style="color: var(--train-color);">📘 สอบซ้อม (Training Accuracy) - คะแนนจากชุดข้อมูลที่ใช้สอน</span>
+                        <span id="text-train">0%</span>
+                    </div>
+                    <div class="bar-track"><div class="bar-fill fill-train" id="bar-train"></div></div>
+                </div>
+
+                <div class="bar-group">
+                    <div class="bar-label">
+                        <span style="color: var(--val-color);">📗 สอบจริง (Validation Accuracy) - คะแนนจากข้อมูลใหม่ที่ไม่เคยเห็น</span>
+                        <span id="text-val">0%</span>
+                    </div>
+                    <div class="bar-track"><div class="bar-fill fill-val" id="bar-val"></div></div>
+                </div>
+
+                <div class="feedback-box" id="feedback-box">กำลังวิเคราะห์...</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function drawNetwork(layers, neurons) {
+            const container = document.getElementById('nn-drawing');
+            container.innerHTML = ''; // Clear
+
+            // Draw Input Layer
+            let html = `<div class="layer-col">`;
+            for(let i=0; i<3; i++) html += `<div class="node input"></div>`;
+            html += `<div class="layer-label">Input (3)</div></div>`;
+
+            // Draw Hidden Layers
+            let displayNodes = neurons;
+            if(neurons > 8) displayNodes = 8; // Limit visual clutter
+            
+            for(let l=0; l<layers; l++) {
+                html += `<div class="layer-col">`;
+                for(let i=0; i<displayNodes; i++) {
+                    html += `<div class="node hidden"></div>`;
+                }
+                if(neurons > 8) html += `<div style="font-size:0.8rem; color:#8b5cf6;">+${neurons-8} nodes</div>`;
+                html += `<div class="layer-label">Hidden ${l+1}</div></div>`;
+            }
+
+            // Draw Output Layer
+            html += `<div class="layer-col"><div class="node output"></div><div class="layer-label">Output (1)</div></div>`;
+            
+            container.innerHTML = html;
+        }
+
+        function updateSim() {
+            // 1. Get Values
+            const layers = parseInt(document.getElementById('slider-layers').value);
+            const neurons = parseInt(document.getElementById('sel-neurons').value);
+            const lr = parseFloat(document.getElementById('sel-lr').value);
+            const epochs = parseInt(document.getElementById('slider-epochs').value);
+
+            // Update Text UI
+            document.getElementById('val-layers').innerText = layers;
+            document.getElementById('val-epochs').innerText = epochs;
+
+            // Draw architecture
+            drawNetwork(layers, neurons);
+
+            // 2. Simulation Logic (จำลองความสัมพันธ์ของตัวแปร)
+            let trainAcc = 50.0;
+            let valAcc = 50.0;
+            let feedback = [];
+            let status = "good"; // underfit, good, overfit, unstable
+
+            const capacity = layers * neurons; // ความจุสมอง
+
+            // Check Learning Rate
+            if (lr === 0.1) {
+                // ก้าวร้าวเกินไป ทะลุเป้าหมาย เรียนไม่รู้เรื่อง
+                trainAcc = 55 + Math.random() * 15;
+                valAcc = trainAcc - Math.random() * 5;
+                status = "unstable";
+                feedback.push("⚠️ <b>Learning Rate สูงเกินไป:</b> AI ก้าวข้ามจุดที่ถูกต้องไปมา (Divergence) ทำให้คะแนนแกว่งและเรียนไม่รู้เรื่อง แนะนำให้ลด Learning Rate ลงครับ");
+            } else {
+                // Normal learning
+                let learningProgress = (epochs * lr * 100); // 0 to >100
+
+                if (capacity < 16) {
+                    // สมองเล็กไป (Underfitting)
+                    trainAcc = 50 + Math.min(learningProgress, 25); // Max ~75%
+                    valAcc = trainAcc - 2;
+                    if (epochs > 100) feedback.push("💡 <b>สมองเล็กเกินไป (Underfitting):</b> ถึงจะให้อ่านหนังสือหลายรอบ (Epochs สูง) แต่เซลล์สมอง (Neurons) มีน้อยเกินกว่าจะเข้าใจแพทเทิร์นที่ซับซ้อนได้ ลองเพิ่ม Neurons ครับ");
+                } else {
+                    // สมองใหญ่พอ
+                    trainAcc = 50 + Math.min(learningProgress * (capacity/32), 49); // Can reach 99%
+                    
+                    // Validation accuracy curve (goes up then drops if overfitted)
+                    valAcc = 50 + Math.min(learningProgress * (capacity/40), 40); // Max ~90%
+                    
+                    // Overfitting condition: High capacity + high epochs
+                    const overfitFactor = (capacity * epochs) / 10000; 
+                    if (overfitFactor > 1.5 && lr !== 0.001) {
+                        valAcc -= Math.min((overfitFactor - 1.5) * 8, 20); // Penalty for overfit
+                    }
+                }
+
+                // Check LR = 0.001 (Too slow)
+                if (lr === 0.001 && epochs < 150) {
+                    status = "underfit";
+                    feedback.push("🐢 <b>เรียนรู้ช้าไป (Underfitting):</b> คุณตั้ง Learning Rate ไว้ต่ำมาก AI เลยปรับตัวช้า ถ้าจะใช้ค่านี้ต้องเพิ่ม Epochs ให้เยอะมากๆ (300+) เพื่อให้มีเวลาเรียนรู้ครับ");
+                }
+            }
+
+            // Cap the values
+            if (trainAcc > 99.8) trainAcc = 99.8;
+            if (valAcc > 92.5) valAcc = 92.5 + Math.random();
+            if (valAcc < 50.0) valAcc = 50.0;
+
+            // Determine specific status if not already set to unstable
+            const gap = trainAcc - valAcc;
+            if (status !== "unstable") {
+                if (trainAcc < 75) {
+                    status = "underfit";
+                } else if (gap > 12) {
+                    status = "overfit";
+                    feedback.push("🚨 <b>ท่องจำข้อสอบ (Overfitting):</b> AI มีสมองขนาดใหญ่ (Neurons/Layers เยอะ) และได้อ่านหนังสือซ้ำหลายรอบ (Epochs สูง) มันเลยใช้วิธี 'ท่องจำ' ข้อมูลซ้อม ทำให้คะแนนสอบจริงร่วง! <b>วิธีแก้:</b> ลดจำนวน Neurons/Layers ลง หรือลด Epochs (Early Stopping)");
+                } else if (valAcc > 85) {
+                    status = "good";
+                    feedback.push("🏆 <b>ยอดเยี่ยม (Good Fit):</b> โครงสร้างสมองกำลังพอดี และตั้งรอบการเรียนรู้ได้เหมาะสม AI เข้าใจแพทเทิร์นและนำไปประยุกต์ใช้กับข้อมูลใหม่ได้ดีมากครับ!");
+                }
+            }
+
+            // 3. Update UI
+            document.getElementById('bar-train').style.width = trainAcc + '%';
+            document.getElementById('text-train').innerText = trainAcc.toFixed(1) + '%';
+            
+            document.getElementById('bar-val').style.width = valAcc + '%';
+            document.getElementById('text-val').innerText = valAcc.toFixed(1) + '%';
+
+            // Format Feedback box
+            const fBox = document.getElementById('feedback-box');
+            if (status === "overfit") {
+                fBox.style.backgroundColor = "#fee2e2"; fBox.style.borderLeftColor = "var(--danger)";
+            } else if (status === "underfit" || status === "unstable") {
+                fBox.style.backgroundColor = "#fef3c7"; fBox.style.borderLeftColor = "var(--warning)";
+                if(feedback.length === 0) feedback.push("⚠️ <b>Underfitting:</b> คะแนนยังน้อยอยู่ ลองปรับสมองให้ใหญ่ขึ้น หรือเพิ่มรอบ Epochs ดูครับ");
+            } else {
+                fBox.style.backgroundColor = "#dcfce7"; fBox.style.borderLeftColor = "var(--val-color)";
+            }
+            
+            fBox.innerHTML = feedback.join("<br><br>");
+        }
+
+        // Init
+        updateSim();
+    </script>
+</body>
+</html>
