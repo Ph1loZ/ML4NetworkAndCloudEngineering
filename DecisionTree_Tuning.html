@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decision Tree Tuning - แบบฝึกหัดปรับจูนพารามิเตอร์</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f3f4f6;
+            --card: #ffffff;
+            --text: #1f2937;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* กล่องควบคุม (Control Panel) */
+        .control-panel {
+            flex: 1;
+            min-width: 300px;
+            background: var(--card);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .param-group {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .param-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+        .param-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .param-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--primary);
+        }
+
+        .param-value {
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .param-desc {
+            font-size: 0.9rem;
+            color: #4b5563;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        /* กล่องแสดงต้นไม้ (Tree Visualization) */
+        .visualization-panel {
+            flex: 2;
+            min-width: 600px;
+            background: var(--card);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .status-bar {
+            width: 100%;
+            padding: 10px;
+            background: #eff6ff;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+            color: #1e40af;
+        }
+
+        /* โครงสร้าง CSS ของ Tree */
+        .tree-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 10px;
+        }
+
+        .node-box {
+            background: white;
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            min-width: 100px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: relative;
+            z-index: 2;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .node-box.leaf-depth { border-color: var(--danger); background: #fef2f2; }
+        .node-box.leaf-split { border-color: var(--warning); background: #fffbeb; }
+        .node-box.leaf-leaf { border-color: var(--secondary); background: #f0fdf4; }
+
+        .node-children {
+            display: flex;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* เส้นเชื่อม Node */
+        .node-children::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: 25%;
+            right: 25%;
+            height: 2px;
+            background: #cbd5e1;
+            z-index: 1;
+        }
+        
+        .tree-node > .node-children > .tree-node::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            width: 2px;
+            height: 20px;
+            background: #cbd5e1;
+            z-index: 1;
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .color-box { width: 15px; height: 15px; border-radius: 4px; border: 2px solid; }
+
+    </style>
+</head>
+<body>
+
+    <h1>🌳 เรียนรู้พารามิเตอร์ของ Decision Tree</h1>
+    <div class="subtitle">จำลองข้อมูล 100 Data Points (สมมติว่าเป็น Network Traffic: ปกติ vs โจมตี) ลองปรับค่าดูว่าต้นไม้เปลี่ยนไปอย่างไร</div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h2>⚙️ ตัวแปร (Hyperparameters)</h2>
+            
+            <div class="param-group">
+                <div class="param-header">
+                    <span class="param-name">max_depth</span>
+                    <span class="param-value" id="val-depth">3</span>
+                </div>
+                <div class="param-desc">
+                    <strong>ความลึกสูงสุดของต้นไม้:</strong> "จำนวนคำถามต่อเนื่องที่ AI ควรถาม"<br>
+                    <small>📌 หากค่าน้อยไป (1-2) AI จะแยกข้อมูลไม่ละเอียด (Underfitting)<br>📌 หากค่ามากไป ต้นไม้จะจำรายละเอียดหยุมหยิมมากเกินไป (Overfitting)</small>
+                </div>
+                <input type="range" id="slider-depth" min="1" max="5" value="3" oninput="updateTree()">
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span class="param-name">min_samples_split</span>
+                    <span class="param-value" id="val-split">20</span>
+                </div>
+                <div class="param-desc">
+                    <strong>ขั้นต่ำที่จะแบ่งต่อ:</strong> "จำนวนข้อมูลในกลุ่ม ต้องมีอย่างน้อยกี่ตัว ถึงจะยอมตั้งคำถามแบ่งกลุ่มต่อ"<br>
+                    <small>📌 ช่วยหยุดต้นไม้ไม่ให้แตกกิ่งก้านสาขาในกลุ่มข้อมูลที่เล็กเกินไปแล้ว</small>
+                </div>
+                <input type="range" id="slider-split" min="2" max="50" value="20" step="2" oninput="updateTree()">
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span class="param-name">min_samples_leaf</span>
+                    <span class="param-value" id="val-leaf">5</span>
+                </div>
+                <div class="param-desc">
+                    <strong>ขั้นต่ำของผลลัพธ์:</strong> "คำตอบสุดท้าย (Leaf) ต้องมีข้อมูลอ้างอิงอย่างน้อยกี่ตัว"<br>
+                    <small>📌 ป้องกันไม่ให้ AI สร้างกฎขึ้นมาเพื่อตัดสินข้อมูลแค่ 1-2 ตัว (กัน Noise)</small>
+                </div>
+                <input type="range" id="slider-leaf" min="1" max="30" value="5" oninput="updateTree()">
+            </div>
+        </div>
+
+        <!-- Visualization Panel -->
+        <div class="visualization-panel">
+            <div class="status-bar" id="status-text">
+                กำลังวาดต้นไม้จำลอง...
+            </div>
+            
+            <div id="tree-container">
+                <!-- ต้นไม้จะถูกสร้างที่นี่ด้วย JavaScript -->
+            </div>
+
+            <div class="legend">
+                <div class="legend-item"><div class="color-box" style="border-color: var(--primary); background: white;"></div> โหนดคำถาม (ยังแบ่งต่อ)</div>
+                <div class="legend-item"><div class="color-box" style="border-color: var(--danger); background: #fef2f2;"></div> หยุดเพราะชน Max Depth</div>
+                <div class="legend-item"><div class="color-box" style="border-color: var(--warning); background: #fffbeb;"></div> หยุดเพราะข้อมูล < min_split</div>
+                <div class="legend-item"><div class="color-box" style="border-color: var(--secondary); background: #f0fdf4;"></div> หยุดเพราะถ้าแบ่งต่อจะ < min_leaf</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // เริ่มต้นด้วยข้อมูลสมมติ 100 ตัว
+        const totalSamples = 100;
+
+        function updateTree() {
+            // อ่านค่าจาก Sliders
+            const maxDepth = parseInt(document.getElementById('slider-depth').value);
+            const minSplit = parseInt(document.getElementById('slider-split').value);
+            const minLeaf = parseInt(document.getElementById('slider-leaf').value);
+
+            // อัปเดตตัวเลขแสดงผล
+            document.getElementById('val-depth').innerText = maxDepth;
+            document.getElementById('val-split').innerText = minSplit;
+            document.getElementById('val-leaf').innerText = minLeaf;
+
+            // อัปเดตข้อความอธิบายสถานะ
+            let statusMsg = `ตอนนี้ต้นไม้ลึกได้มากสุด ${maxDepth} ชั้น, ต้องมีข้อมูล >= ${minSplit} ถึงจะแบ่งต่อ, และห้ามสร้างผลลัพธ์ที่ข้อมูล < ${minLeaf}`;
+            document.getElementById('status-text').innerText = statusMsg;
+
+            // สร้างโครงสร้างต้นไม้จำลอง
+            const treeData = buildTreeSim(totalSamples, 1, maxDepth, minSplit, minLeaf);
+            
+            // วาดต้นไม้ลงจอ
+            const treeHtml = renderTree(treeData);
+            document.getElementById('tree-container').innerHTML = treeHtml;
+        }
+
+        // ฟังก์ชันจำลองการทำงานของอัลกอริทึม Decision Tree
+        function buildTreeSim(samples, currentDepth, maxDepth, minSplit, minLeaf) {
+            // เงื่อนไขที่ 1: ชน Max Depth -> บังคับหยุดเป็น Leaf
+            if (currentDepth > maxDepth) {
+                return { isLeaf: true, samples: samples, reason: 'leaf-depth', msg: 'ชน Max Depth' };
+            }
+
+            // เงื่อนไขที่ 2: จำนวนข้อมูลน้อยกว่า min_samples_split -> ไม่ตั้งคำถามต่อ หยุดเป็น Leaf
+            if (samples < minSplit) {
+                return { isLeaf: true, samples: samples, reason: 'leaf-split', msg: 'ข้อมูลน้อยกว่า Split' };
+            }
+
+            // สมมติว่า AI ตั้งคำถามและแบ่งข้อมูลออกเป็น 2 กลุ่ม (แบ่งแบบไม่เท่ากัน 60% / 40%)
+            const leftSamples = Math.floor(samples * 0.6);
+            const rightSamples = samples - leftSamples;
+
+            // เงื่อนไขที่ 3: ถ้าแบ่งแล้ว ลูกฝั่งใดฝั่งหนึ่งมีข้อมูลน้อยกว่า min_samples_leaf -> ห้ามแบ่ง ให้หยุดเป็น Leaf เลย
+            if (leftSamples < minLeaf || rightSamples < minLeaf) {
+                return { isLeaf: true, samples: samples, reason: 'leaf-leaf', msg: 'กันข้อมูลน้อยกว่า Leaf' };
+            }
+
+            // ถ้าผ่านทุกเงื่อนไข -> เป็น Node คำถาม และสร้างลูกหลานต่อไป
+            return {
+                isLeaf: false,
+                samples: samples,
+                depth: currentDepth,
+                left: buildTreeSim(leftSamples, currentDepth + 1, maxDepth, minSplit, minLeaf),
+                right: buildTreeSim(rightSamples, currentDepth + 1, maxDepth, minSplit, minLeaf)
+            };
+        }
+
+        // ฟังก์ชันแปลงข้อมูลเป็น HTML
+        function renderTree(node) {
+            if (node.isLeaf) {
+                return `
+                <div class="tree-node">
+                    <div class="node-box ${node.reason}">
+                        <strong>จบที่ Leaf</strong><br>
+                        ข้อมูล: ${node.samples}<br>
+                        <small style="color: #666;">${node.msg}</small>
+                    </div>
+                </div>`;
+            }
+
+            return `
+            <div class="tree-node">
+                <div class="node-box">
+                    <strong>ชั้นที่ ${node.depth}</strong><br>
+                    มีข้อมูล: ${node.samples}<br>
+                    <small>ตั้งคำถามแบ่งข้อมูล</small>
+                </div>
+                <div class="node-children">
+                    ${renderTree(node.left)}
+                    ${renderTree(node.right)}
+                </div>
+            </div>`;
+        }
+
+        // โหลดครั้งแรก
+        updateTree();
+    </script>
+</body>
+</html>
