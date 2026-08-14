@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XGBoost Interactive Game - เกมแก้ตัวให้สมบูรณ์แบบ</title>
+    <style>
+        :root {
+            --primary: #f97316; /* Orange for XGBoost */
+            --primary-light: #ffedd5;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --blue: #3b82f6;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 800px;
+            line-height: 1.6;
+        }
+
+        .container {
+            background: var(--card);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 800px;
+            margin-bottom: 20px;
+        }
+
+        /* Target & Prediction Bar */
+        .dashboard {
+            margin-bottom: 30px;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .target-text { color: var(--danger); }
+        .pred-text { color: var(--blue); }
+        .error-text { color: #8b5cf6; }
+
+        .progress-container {
+            width: 100%;
+            height: 40px;
+            background-color: #e2e8f0;
+            border-radius: 8px;
+            position: relative;
+            overflow: hidden;
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .target-line {
+            position: absolute;
+            top: 0;
+            bottom: 0;
+            width: 4px;
+            background-color: var(--danger);
+            z-index: 10;
+        }
+
+        .target-label {
+            position: absolute;
+            top: -25px;
+            color: var(--danger);
+            font-weight: bold;
+            font-size: 0.9rem;
+            transform: translateX(-50%);
+        }
+
+        .prediction-bar {
+            height: 100%;
+            background-color: var(--blue);
+            width: 0%;
+            transition: width 0.5s ease-out;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-weight: bold;
+            box-sizing: border-box;
+        }
+
+        /* ควบคุม (Controls) */
+        .controls {
+            background: #f1f5f9;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border-left: 5px solid var(--primary);
+        }
+
+        .slider-group {
+            margin-bottom: 20px;
+        }
+
+        .slider-group label {
+            display: flex;
+            justify-content: space-between;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary);
+        }
+
+        .btn-add {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .btn-add:hover { transform: scale(1.02); }
+        .btn-add:disabled { background-color: #cbd5e1; cursor: not-allowed; transform: none; }
+
+        .btn-reset {
+            width: 100%;
+            padding: 10px;
+            background-color: #94a3b8;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            margin-top: 10px;
+            cursor: pointer;
+        }
+
+        /* ประวัติการทำงาน (History Log) */
+        .history-box {
+            max-height: 250px;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f8fafc;
+        }
+
+        .log-entry {
+            padding: 8px;
+            border-bottom: 1px solid #e2e8f0;
+            font-size: 0.95rem;
+            animation: fadeIn 0.5s;
+        }
+
+        .log-entry:last-child { border-bottom: none; }
+        .log-tree { font-weight: bold; color: var(--primary); }
+        .log-fix { color: var(--success); font-weight: bold;}
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .explanation {
+            background: #eff6ff;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-size: 0.95rem;
+            color: #1e3a8a;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>🚀 XGBoost: ทีมเวิร์คของการแก้ตัว</h1>
+    <div class="subtitle">
+        ต่างจาก Random Forest ที่ให้ทุกคนเดาพร้อมกัน <b>XGBoost</b> จะสร้างต้นไม้ทีละต้นอย่างเป็นลำดับขั้น <br>
+        ต้นไม้ต้นใหม่ จะโฟกัสแค่ <b>"ข้อผิดพลาด (Residual Error)"</b> ที่ต้นไม้ต้นก่อนหน้าทำไว้ แล้วพยายามอุดช่องโหว่นั้น!
+    </div>
+
+    <div class="container">
+        
+        <div class="dashboard">
+            <div class="stats-row">
+                <span class="pred-text">คำทำนายปัจจุบัน: <span id="val-pred">50.0</span>%</span>
+                <span class="error-text">ข้อผิดพลาดที่ต้องแก้: <span id="val-error">38.0</span>%</span>
+                <span class="target-text">เป้าหมายจริง (Target): <span id="val-target">88.0</span>%</span>
+            </div>
+
+            <div style="position: relative; margin-top: 30px;">
+                <div class="target-label" id="label-target" style="left: 88%;">🎯 เป้าหมาย</div>
+                <div class="progress-container">
+                    <div class="target-line" id="line-target" style="left: 88%;"></div>
+                    <div class="prediction-bar" id="bar-pred" style="width: 50%;">50% (เริ่มต้น)</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="controls">
+            <div class="slider-group">
+                <label>
+                    <span>Learning Rate (ความก้าวร้าวในการแก้ไข)</span>
+                    <span id="label-lr" style="color: var(--primary);">0.3</span>
+                </label>
+                <input type="range" id="slider-lr" min="0.1" max="1.0" step="0.1" value="0.3" oninput="updateLR()">
+                <small style="color: #64748b; display: block; margin-top: 5px;">
+                    * ยิ่งค่าน้อย AI จะค่อยๆ แก้ทีละนิด (ปลอดภัยแต่นาน) | ยิ่งค่ามาก AI จะก้าวข้ามข้อผิดพลาดทีละเยอะๆ (เสี่ยงแก้เกินจนล้น Overfitting)
+                </small>
+            </div>
+
+            <button class="btn-add" id="btn-add" onclick="addTree()">🌳 สร้างต้นไม้ต้นถัดไป เพื่อแก้ Error!</button>
+            <button class="btn-reset" onclick="initGame()">🔄 เริ่มต้นจำลองใหม่</button>
+        </div>
+
+        <h3>📝 บันทึกการทำงานของคณะกรรมการ (Sequential Log)</h3>
+        <div class="history-box" id="log-box">
+            <!-- Logs จะแสดงตรงนี้ -->
+        </div>
+
+        <div class="explanation">
+            <strong>💡 สรุปการทำงาน:</strong><br>
+            สมการของ XGBoost คือ: <code>คำทำนายใหม่ = คำทำนายเดิม + (Learning Rate × ต้นไม้ต้นใหม่ที่ทายค่า Error)</code><br>
+            จะเห็นว่าต้นไม้ต้นที่ 2 ไม่ได้พยายามทายค่าเป้าหมาย (Target) แต่พยายามทายว่า <b>"ต้นที่ 1 พลาดไปเท่าไหร่"</b> เพื่อเอามาบวกเพิ่มต่างหาก!
+        </div>
+
+    </div>
+
+    <script>
+        let targetValue = 88.0;
+        let currentPred = 50.0;
+        let treeCount = 0;
+        
+        function initGame() {
+            // สุ่ม Target ระหว่าง 70 ถึง 95
+            targetValue = Math.floor(Math.random() * 26) + 70;
+            currentPred = 50.0; // ค่าเดาเริ่มต้น (Base Score)
+            treeCount = 0;
+
+            // อัปเดต UI
+            document.getElementById('val-target').innerText = targetValue.toFixed(1);
+            document.getElementById('label-target').style.left = targetValue + '%';
+            document.getElementById('line-target').style.left = targetValue + '%';
+            
+            document.getElementById('btn-add').disabled = false;
+            document.getElementById('btn-add').innerText = "🌳 สร้างต้นไม้ต้นถัดไป เพื่อแก้ Error!";
+            document.getElementById('log-box').innerHTML = `
+                <div class="log-entry">
+                    🔵 <b>เริ่มต้น:</b> โมเดลเดาค่าตั้งต้น (Base Prediction) ไว้ที่ <b>50.0%</b>
+                </div>
+            `;
+            
+            updateDisplay();
+        }
+
+        function updateLR() {
+            const lr = document.getElementById('slider-lr').value;
+            document.getElementById('label-lr').innerText = parseFloat(lr).toFixed(1);
+        }
+
+        function addTree() {
+            const lr = parseFloat(document.getElementById('slider-lr').value);
+            const error = targetValue - currentPred; // ข้อผิดพลาด (Residual)
+            
+            treeCount++;
+
+            // สมมติว่าต้นไม้ต้นใหม่ ทายค่า Error ได้แม่นยำระดับหนึ่ง (อาจจะมีแกว่งนิดหน่อย แต่เพื่อความเข้าใจง่ายเราให้มันทายถูกเลย)
+            const treePrediction = error; 
+            
+            // นำค่าที่ต้นไม้ทายได้ มาคูณกับ Learning Rate
+            const actualFix = treePrediction * lr;
+            
+            // อัปเดตคำทำนายปัจจุบัน
+            currentPred += actualFix;
+
+            // เพิ่ม Log
+            const logBox = document.getElementById('log-box');
+            const newLog = document.createElement('div');
+            newLog.className = 'log-entry';
+            newLog.innerHTML = `
+                <span class="log-tree">🌳 ต้นไม้ต้นที่ ${treeCount}:</span> 
+                เห็นว่าพลาดไป ${error.toFixed(1)} -> จึงเสนอให้แก้เพิ่ม <span class="log-fix">+${actualFix.toFixed(1)}</span> (คูณ LR ${lr})
+            `;
+            logBox.appendChild(newLog);
+            logBox.scrollTop = logBox.scrollHeight; // Scroll to bottom
+
+            updateDisplay();
+
+            // หยุดเมื่อใกล้เคียงมากๆ (error < 0.5)
+            if (Math.abs(targetValue - currentPred) < 0.5) {
+                document.getElementById('btn-add').disabled = true;
+                document.getElementById('btn-add').innerText = "🎉 คาดการณ์ได้แม่นยำแล้ว! (โมเดลสมบูรณ์)";
+            }
+        }
+
+        function updateDisplay() {
+            const error = targetValue - currentPred;
+            
+            document.getElementById('val-pred').innerText = currentPred.toFixed(1);
+            document.getElementById('val-error').innerText = Math.abs(error).toFixed(1);
+            
+            const bar = document.getElementById('bar-pred');
+            bar.style.width = currentPred + '%';
+            bar.innerText = currentPred.toFixed(1) + '%';
+            
+            // ถ้า Error ติดลบ แปลว่าเดาเกิน (Overfitting) ให้บาร์เป็นสีแดงเตือน
+            if (currentPred > targetValue) {
+                bar.style.backgroundColor = 'var(--danger)';
+            } else {
+                bar.style.backgroundColor = 'var(--blue)';
+            }
+        }
+
+        // โหลดครั้งแรก
+        initGame();
+    </script>
+</body>
+</html>
