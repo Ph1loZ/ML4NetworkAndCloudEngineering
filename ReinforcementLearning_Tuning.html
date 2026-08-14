@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RL Tuning - จูนนิสัย AI หาเส้นทาง</title>
+    <style>
+        :root {
+            --primary: #6366f1; /* Indigo */
+            --success: #10b981; /* Green */
+            --danger: #ef4444; /* Red */
+            --warning: #f59e0b; /* Amber */
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            flex: 1;
+            min-width: 350px;
+            max-width: 400px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .param-group {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+        }
+
+        .param-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .param-value {
+            background: var(--primary);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+        }
+
+        .param-desc {
+            font-size: 0.85rem;
+            color: #475569;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary);
+            cursor: pointer;
+            padding: 5px 0;
+        }
+
+        .btn-group {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            color: white;
+        }
+        button:hover { transform: scale(1.02); }
+        .btn-train { background-color: var(--primary); }
+        .btn-reset { background-color: #64748b; }
+
+        /* Status & Feedback */
+        .stats-box {
+            display: flex;
+            justify-content: space-between;
+            background: #e0e7ff;
+            padding: 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            color: #3730a3;
+        }
+
+        .feedback-box {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            border-left: 4px solid var(--primary);
+            background: #eff6ff;
+            color: #1e3a8a;
+        }
+
+        /* Grid Panel */
+        .grid-panel {
+            flex: 1.5;
+            min-width: 500px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .maze {
+            display: grid;
+            grid-template-columns: repeat(6, 65px);
+            grid-template-rows: repeat(6, 65px);
+            gap: 4px;
+            background: #cbd5e1;
+            padding: 4px;
+            border-radius: 8px;
+        }
+
+        .cell {
+            background: white;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 2rem;
+            position: relative;
+        }
+
+        .cell.agent { background-color: #bfdbfe; }
+        .cell.goal { background-color: #dcfce7; }
+        .cell.trap { background-color: #fee2e2; }
+
+        /* Q-Value Arrows (Policy) */
+        .policy {
+            position: absolute;
+            font-size: 1.5rem;
+            color: #94a3b8;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        .policy.active { opacity: 1; color: var(--primary); font-weight: bold; }
+
+        /* Color shade for Q-value magnitude */
+        .q-heatmap {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--success);
+            opacity: 0;
+            border-radius: 4px;
+            pointer-events: none;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🧠 จูนพารามิเตอร์ Reinforcement Learning (Q-Learning)</h1>
+    <div class="subtitle">
+        AI สรุปบทเรียนออกมาเป็น <b>ลูกศร (Policy)</b> ชี้ทางไปหาเป้าหมาย <br>
+        ลองปรับ <b>อุปนิสัย</b> ของ AI ด้านซ้ายมือ แล้วสังเกตว่าลูกศรบนพื้นถูกวาดขึ้นมาอย่างไรในขณะที่มันเดิน!
+    </div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            
+            <div class="param-group">
+                <div class="param-header">
+                    <span>1. Learning Rate (Alpha α)</span>
+                    <span class="param-value" id="val-alpha">0.5</span>
+                </div>
+                <div class="param-desc">
+                    <strong>ความหัวไว (การจำของใหม่ ทิ้งของเก่า):</strong><br>
+                    - <b>ค่าสูง:</b> เชื่อประสบการณ์ล่าสุดทันที ลืมของเก่าเร็ว (ลูกศรเปลี่ยนทิศไว)<br>
+                    - <b>ค่าต่ำ:</b> หัวแข็ง ต้องเดินซ้ำๆ หลายๆ รอบถึงจะยอมเปลี่ยนลูกศรบนพื้น
+                </div>
+                <input type="range" id="slide-alpha" min="0.05" max="1.0" step="0.05" value="0.5" oninput="updateUI()">
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span>2. Discount Factor (Gamma γ)</span>
+                    <span class="param-value" id="val-gamma">0.9</span>
+                </div>
+                <div class="param-desc">
+                    <strong>วิสัยทัศน์ (มองการณ์ไกล):</strong><br>
+                    - <b>ค่าต่ำ (เช่น 0):</b> สายตาสั้น! สนใจแค่ช่องที่อยู่ติดกัน (ลูกศรจะไม่เชื่อมโยงกันเป็นทางยาว)<br>
+                    - <b>ค่าสูง (เช่น 0.9):</b> มองไกล! ยอมเดินผ่านช่องธรรมดา เพื่อไปหารางวัลใหญ่ที่ปลายทาง (ลูกศรจะต่อกันจนถึงจุดเริ่มต้น)
+                </div>
+                <input type="range" id="slide-gamma" min="0" max="0.99" step="0.1" value="0.9" oninput="updateUI()">
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span>3. Exploration Rate (Epsilon ε)</span>
+                    <span class="param-value" style="background:var(--warning);" id="val-epsilon">0.2</span>
+                </div>
+                <div class="param-desc">
+                    <strong>ความกล้าเสี่ยง (อยากลองของใหม่):</strong><br>
+                    - <b>ค่าสูง:</b> อินดี้! ไม่สนลูกศรบนพื้น เดินสุ่มมั่วๆ เผื่อเจอทางลัด<br>
+                    - <b>ค่าต่ำ:</b> เด็กเรียน! เดินตามลูกศรคู่มือเป๊ะๆ อย่างเดียว
+                </div>
+                <input type="range" id="slide-epsilon" min="0" max="1.0" step="0.1" value="0.2" oninput="updateUI()">
+            </div>
+
+            <div class="stats-box">
+                <span>รอบการฝึก (Episode): <span id="txt-episode">0</span></span>
+            </div>
+
+            <div class="btn-group">
+                <button class="btn-train" id="btn-train" onclick="toggleTrain()">▶️ ฝึก AI ต่อเนื่อง</button>
+                <button class="btn-reset" onclick="resetQTable()">🔄 ล้างสมุดจด (Reset)</button>
+            </div>
+
+        </div>
+
+        <!-- Grid Panel -->
+        <div class="grid-panel">
+            <h3 style="margin-top:0; color: #475569;">แผนที่เครือข่ายจำลอง (Network Grid)</h3>
+            
+            <div class="maze" id="maze">
+                <!-- Generated by JS -->
+            </div>
+
+            <div class="feedback-box" id="feedback-box">
+                กด <b>"ฝึก AI ต่อเนื่อง"</b> แล้วสังเกตว่าลูกศรชี้ทาง (Policy) จะแผ่ขยายจาก Cloud Server กลับมาหาจุดเริ่มต้นอย่างไร!
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const gridSize = 6;
+        const startPos = {x: 0, y: 0};
+        const goalPos = {x: 5, y: 5};
+        const traps = [
+            {x: 2, y: 1}, {x: 2, y: 2}, {x: 2, y: 3}, // กำแพงกีดขวาง
+            {x: 4, y: 4}, {x: 3, y: 5} // หลุมพรางใกล้เป้าหมาย
+        ];
+
+        const actions = [[0, -1], [1, 0], [0, 1], [-1, 0]]; // U, R, D, L
+        const arrows = ['⬆️', '➡️', '⬇️', '⬅️'];
+        let qTable = {};
+        
+        let currentPos = {...startPos};
+        let episode = 0;
+        let isTraining = false;
+        let trainInterval = null;
+
+        function updateUI() {
+            document.getElementById('val-alpha').innerText = parseFloat(document.getElementById('slide-alpha').value).toFixed(2);
+            document.getElementById('val-gamma').innerText = parseFloat(document.getElementById('slide-gamma').value).toFixed(2);
+            document.getElementById('val-epsilon').innerText = parseFloat(document.getElementById('slide-epsilon').value).toFixed(1);
+
+            analyzeParameters();
+        }
+
+        function analyzeParameters() {
+            const alpha = parseFloat(document.getElementById('slide-alpha').value);
+            const gamma = parseFloat(document.getElementById('slide-gamma').value);
+            const epsilon = parseFloat(document.getElementById('slide-epsilon').value);
+            const fbBox = document.getElementById('feedback-box');
+
+            let fb = "";
+
+            if (gamma === 0) {
+                fb = "👁️ <b>AI สายตาสั้น (Gamma = 0):</b><br>AI จะมองเห็นแค่รางวัลที่อยู่ติดตัวมันเท่านั้น! ลูกศรจะปรากฏแค่ช่องรอบๆ Cloud Server ส่วนช่องที่อยู่ไกลออกไป AI จะเดินหลงทางไปตลอดกาล!";
+                fbBox.style.backgroundColor = '#fef3c7'; fbBox.style.borderLeftColor = 'var(--warning)';
+            } else if (epsilon > 0.8) {
+                fb = "🎲 <b>AI สายมั่ว (Epsilon สูง):</b><br>AI ไม่ยอมเดินตามลูกศรบนพื้นเลย มันมัวแต่เดินสุ่มมั่วซั่วไปหมด การทำแบบนี้ดีในช่วงแรกเพื่อหาทางลัด แต่ถ้าทำตลอดไป มันจะถึงเป้าหมายช้ามาก!";
+                fbBox.style.backgroundColor = '#fdf2f8'; fbBox.style.borderLeftColor = '#ec4899';
+            } else if (alpha < 0.1) {
+                fb = "🐢 <b>AI หัวแข็ง (Alpha ต่ำ):</b><br>AI เรียนรู้ช้ามาก มันต้องเดินตกลงไปในไฟหลายๆ รอบ หรือถึงเซิร์ฟเวอร์ซ้ำๆ หลายครั้ง กว่ามันจะยอมเปลี่ยนลูกศรบนพื้น";
+                fbBox.style.backgroundColor = '#eff6ff'; fbBox.style.borderLeftColor = 'var(--primary)';
+            } else {
+                fb = "🏆 <b>พารามิเตอร์สมดุล:</b><br>การตั้งค่านี้เหมาะสำหรับการเรียนรู้ที่ดี ลูกศรความรู้ (Policy) จะค่อยๆ แผ่ขยายจาก Server ย้อนกลับมาหาจุดเริ่มต้นอย่างมีประสิทธิภาพ";
+                fbBox.style.backgroundColor = '#dcfce7'; fbBox.style.borderLeftColor = 'var(--success)';
+            }
+
+            fbBox.innerHTML = fb;
+        }
+
+        function initGrid() {
+            const maze = document.getElementById('maze');
+            maze.innerHTML = '';
+            
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.id = `cell-${x}-${y}`;
+                    
+                    if (x === goalPos.x && y === goalPos.y) {
+                        cell.classList.add('goal');
+                        cell.innerHTML = '🖥️';
+                    } else if (traps.some(t => t.x === x && t.y === y)) {
+                        cell.classList.add('trap');
+                        cell.innerHTML = '🔥';
+                    } else {
+                        // Heatmap layer
+                        const heatmap = document.createElement('div');
+                        heatmap.className = 'q-heatmap';
+                        heatmap.id = `heat-${x}-${y}`;
+                        cell.appendChild(heatmap);
+
+                        // Arrow layer
+                        const policyArrow = document.createElement('div');
+                        policyArrow.className = 'policy';
+                        policyArrow.id = `policy-${x}-${y}`;
+                        policyArrow.innerText = '•';
+                        cell.appendChild(policyArrow);
+                    }
+                    maze.appendChild(cell);
+
+                    // Initialize Q-Table
+                    qTable[`${x},${y}`] = [0, 0, 0, 0];
+                }
+            }
+            drawAgent();
+        }
+
+        function drawAgent() {
+            document.querySelectorAll('.cell.agent').forEach(el => {
+                el.classList.remove('agent');
+                el.innerHTML = el.innerHTML.replace('🤖', '');
+            });
+
+            const agentCell = document.getElementById(`cell-${currentPos.x}-${currentPos.y}`);
+            agentCell.classList.add('agent');
+            if (!agentCell.innerHTML.includes('🤖')) {
+                agentCell.innerHTML = '🤖' + agentCell.innerHTML;
+            }
+        }
+
+        function updatePolicyMap() {
+            for (let y = 0; y < gridSize; y++) {
+                for (let x = 0; x < gridSize; x++) {
+                    if ((x === goalPos.x && y === goalPos.y) || traps.some(t => t.x === x && t.y === y)) continue;
+
+                    const state = `${x},${y}`;
+                    const qValues = qTable[state];
+                    const maxQ = Math.max(...qValues);
+                    
+                    const policyEl = document.getElementById(`policy-${x}-${y}`);
+                    const heatEl = document.getElementById(`heat-${x}-${y}`);
+                    
+                    if (maxQ > 0) {
+                        const bestAction = qValues.indexOf(maxQ);
+                        policyEl.innerText = arrows[bestAction];
+                        policyEl.classList.add('active');
+                        
+                        // สีเขียวเข้มขึ้นตามค่า Q-Value
+                        heatEl.style.opacity = Math.min(maxQ / 100, 0.4);
+                    } else if (Math.min(...qValues) < 0) {
+                        // ทางตันหรือลงไฟ (หลีกเลี่ยง)
+                        const bestAction = qValues.indexOf(Math.max(...qValues)); // เลือกทางที่เจ็บน้อยสุด
+                        policyEl.innerText = arrows[bestAction];
+                        policyEl.classList.add('active');
+                    }
+                }
+            }
+        }
+
+        function step() {
+            const alpha = parseFloat(document.getElementById('slide-alpha').value);
+            const gamma = parseFloat(document.getElementById('slide-gamma').value);
+            const epsilon = parseFloat(document.getElementById('slide-epsilon').value);
+
+            const state = `${currentPos.x},${currentPos.y}`;
+            let actionIdx;
+
+            // Epsilon-Greedy Strategy
+            if (Math.random() < epsilon) {
+                actionIdx = Math.floor(Math.random() * 4); // Explore
+            } else {
+                const qValues = qTable[state];
+                actionIdx = qValues.indexOf(Math.max(...qValues)); // Exploit
+            }
+
+            const dx = actions[actionIdx][0];
+            const dy = actions[actionIdx][1];
+            
+            let nx = currentPos.x + dx;
+            let ny = currentPos.y + dy;
+
+            // ชนกำแพง (ขอบแมพ)
+            if (nx < 0 || nx >= gridSize || ny < 0 || ny >= gridSize) {
+                nx = currentPos.x;
+                ny = currentPos.y;
+            }
+
+            let reward = -1; // หักคะแนนเดิน 1 ก้าว
+            let done = false;
+
+            if (traps.some(t => t.x === nx && t.y === ny)) {
+                reward = -100; // ตกไฟ
+                done = true;
+            } else if (nx === goalPos.x && ny === goalPos.y) {
+                reward = 100; // ถึงเป้าหมาย
+                done = true;
+            }
+
+            // Bellman Equation
+            const nextState = `${nx},${ny}`;
+            const maxNextQ = Math.max(...qTable[nextState]);
+            
+            // Q(s,a) = Q(s,a) + alpha * (R + gamma * maxQ(s') - Q(s,a))
+            qTable[state][actionIdx] = qTable[state][actionIdx] + alpha * (reward + gamma * maxNextQ - qTable[state][actionIdx]);
+
+            currentPos = {x: nx, y: ny};
+
+            if (done) {
+                episode++;
+                document.getElementById('txt-episode').innerText = episode;
+                currentPos = {...startPos}; // Reset Position
+            }
+        }
+
+        function trainingLoop() {
+            // Speed up simulation: 10 steps per tick
+            for(let i = 0; i < 15; i++) {
+                step();
+            }
+            drawAgent();
+            updatePolicyMap();
+        }
+
+        function toggleTrain() {
+            const btn = document.getElementById('btn-train');
+            isTraining = !isTraining;
+
+            if (isTraining) {
+                btn.innerHTML = "⏸️ หยุดพัก (Pause)";
+                btn.style.backgroundColor = "var(--warning)";
+                trainInterval = setInterval(trainingLoop, 40);
+            } else {
+                btn.innerHTML = "▶️ ฝึก AI ต่อเนื่อง";
+                btn.style.backgroundColor = "var(--primary)";
+                clearInterval(trainInterval);
+            }
+        }
+
+        function resetQTable() {
+            if (isTraining) toggleTrain();
+            episode = 0;
+            currentPos = {...startPos};
+            document.getElementById('txt-episode').innerText = '0';
+            initGrid(); // Re-init creates empty Q-table
+            updateUI();
+        }
+
+        // Initialize
+        updateUI();
+        initGrid();
+
+    </script>
+</body>
+</html>
