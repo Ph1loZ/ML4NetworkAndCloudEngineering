@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stacking Game - ระบบหัวหน้าและผู้เชี่ยวชาญ</title>
+    <style>
+        :root {
+            --primary: #4f46e5; /* Indigo */
+            --expert1: #0ea5e9; /* Sky blue */
+            --expert2: #10b981; /* Emerald */
+            --expert3: #f59e0b; /* Amber */
+            --boss: #8b5cf6; /* Violet */
+            --success: #22c55e;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 800px;
+            line-height: 1.6;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+        }
+
+        /* 1. Input Section */
+        .scenario-box {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            text-align: center;
+            border-top: 5px solid var(--primary);
+        }
+
+        select {
+            padding: 10px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            width: 80%;
+            margin: 15px 0;
+            outline: none;
+        }
+
+        .btn-action {
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+        }
+        .btn-action:hover { transform: scale(1.05); }
+
+        /* 2. Level-0: Base Models (Experts) */
+        .level-0-container {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            width: 100%;
+            flex-wrap: wrap;
+            opacity: 0.3;
+            pointer-events: none;
+            transition: opacity 0.5s;
+        }
+        .level-0-container.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .expert-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            width: 250px;
+            text-align: center;
+            position: relative;
+        }
+        .e1 { border-top: 4px solid var(--expert1); }
+        .e2 { border-top: 4px solid var(--expert2); }
+        .e3 { border-top: 4px solid var(--expert3); }
+
+        .expert-icon { font-size: 2.5rem; margin-bottom: 10px; }
+        .expert-title { font-weight: bold; font-size: 1.1rem; margin-bottom: 5px; }
+        .expert-desc { font-size: 0.85rem; color: #64748b; margin-bottom: 15px; height: 40px; }
+        
+        .expert-prediction {
+            background: #f1f5f9;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: #94a3b8;
+            border: 2px solid transparent;
+        }
+        .pred-normal { background: #f0fdf4; color: var(--success); border-color: var(--success); }
+        .pred-attack { background: #fef2f2; color: var(--danger); border-color: var(--danger); }
+
+        /* Arrow */
+        .arrow-down {
+            font-size: 2rem;
+            color: #cbd5e1;
+            display: none;
+            animation: bounce 2s infinite;
+        }
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        /* 3. Level-1: Meta Model (The Boss) */
+        .level-1-container {
+            background: var(--card);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+            width: 100%;
+            max-width: 700px;
+            text-align: center;
+            border: 4px solid var(--boss);
+            display: none;
+            animation: fadeIn 0.8s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .boss-icon { font-size: 3rem; margin-bottom: 10px; }
+        .boss-title { font-size: 1.5rem; font-weight: bold; color: var(--boss); margin-bottom: 15px; }
+        
+        .boss-inputs {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+            background: #f8fafc;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px dashed #cbd5e1;
+        }
+        .input-tag { padding: 4px 10px; border-radius: 12px; font-weight: bold; color: white; }
+        
+        .boss-decision {
+            font-size: 1.5rem;
+            font-weight: bold;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 15px;
+            color: white;
+        }
+        
+        .boss-reason {
+            background: #eff6ff;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            color: #1e3a8a;
+            text-align: left;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>🥞 Stacking Ensemble: ระบบผู้จัดการอัจฉริยะ</h1>
+    <div class="subtitle">
+        <b>Stacking (Stacked Generalization)</b> คือการใช้ AI หลายๆ แบบ (Level-0) มาช่วยกันคิด แล้วส่ง "คำตอบ" ไปให้โมเดลผู้จัดการ (Level-1) ตัดสินใจฟันธงอีกที! <br>
+        <i>จุดเด่น: ผู้จัดการจะเรียนรู้ว่า "ในสถานการณ์แบบนี้ ควรเชื่อลูกน้องคนไหนมากที่สุด"</i>
+    </div>
+
+    <div class="container">
+        
+        <!-- 1. Data Input -->
+        <div class="scenario-box">
+            <h3>📡 สุ่มดักจับ Network Traffic เข้ามาวิเคราะห์</h3>
+            <select id="scenario-select">
+                <option value="normal">เคสที่ 1: พนักงานทั่วไปดู YouTube และดาวน์โหลดไฟล์ (Normal)</option>
+                <option value="ddos">เคสที่ 2: มีคนส่งข้อมูลขยะมาจำนวนมหาศาลรัวๆ (DDoS Attack)</option>
+                <option value="sqli">เคสที่ 3: แฮกเกอร์แอบฝังโค้ดประหลาดมาในช่อง Login แบบเนียนๆ (Sneaky Attack)</option>
+            </select>
+            <br>
+            <button class="btn-action" onclick="sendToExperts()">1. ส่งข้อมูลให้ทีมผู้เชี่ยวชาญ (Level-0)</button>
+        </div>
+
+        <!-- 2. Base Learners (Level 0) -->
+        <div class="level-0-container" id="level-0">
+            <!-- Expert 1: Decision Tree -->
+            <div class="expert-card e1">
+                <div class="expert-icon">🌳</div>
+                <div class="expert-title">นายกฎเกณฑ์ (Decision Tree)</div>
+                <div class="expert-desc">เก่งเรื่องปริมาณ: เช็คว่าความเร็วเกินลิมิตไหม / มาจาก IP แปลกๆ ไหม</div>
+                <div class="expert-prediction" id="pred-e1">รอข้อมูล...</div>
+            </div>
+
+            <!-- Expert 2: KNN -->
+            <div class="expert-card e2">
+                <div class="expert-icon">📏</div>
+                <div class="expert-title">นายสถิติ (KNN)</div>
+                <div class="expert-desc">เก่งเรื่องระยะทาง: หาว่าพฤติกรรมนี้คล้ายกับใครในอดีตมากที่สุด</div>
+                <div class="expert-prediction" id="pred-e2">รอข้อมูล...</div>
+            </div>
+
+            <!-- Expert 3: Neural Network -->
+            <div class="expert-card e3">
+                <div class="expert-icon">🧠</div>
+                <div class="expert-title">นายพฤติกรรม (Neural Network)</div>
+                <div class="expert-desc">เก่งเรื่องเจาะลึก: สแกนดูแพทเทิร์นที่ซ่อนอยู่ในข้อมูลเชิงลึก (แต่บางทีก็คิดมากไป)</div>
+                <div class="expert-prediction" id="pred-e3">รอข้อมูล...</div>
+            </div>
+        </div>
+
+        <div class="arrow-down" id="arrow">⬇️ ส่งคำตอบไปให้ผู้จัดการ ⬇️</div>
+        
+        <button class="btn-action" id="btn-boss" style="display: none;" onclick="sendToBoss()">2. ส่งรีพอร์ตให้ผู้จัดการตัดสินใจ (Level-1)</button>
+
+        <!-- 3. Meta Learner (Level 1) -->
+        <div class="level-1-container" id="level-1">
+            <div class="boss-icon">🤵‍♀️</div>
+            <div class="boss-title">ผู้จัดการ (Meta-Model / Logistic Regression)</div>
+            
+            <div style="font-size: 0.9rem; color: #64748b; margin-bottom: 5px;">ข้อมูลที่ผู้จัดการเห็น (ไม่เห็น Data ดิบแล้ว เห็นแค่คำตอบลูกน้อง):</div>
+            <div class="boss-inputs" id="boss-inputs">
+                <!-- Tags will be injected here -->
+            </div>
+
+            <div class="boss-decision" id="boss-decision">รอการพิจารณา...</div>
+            
+            <div class="boss-reason" id="boss-reason">
+                <!-- Reason will be injected here -->
+            </div>
+            
+            <button class="btn-action" style="margin-top: 20px; background-color: #64748b;" onclick="resetGame()">🔄 ลองเล่นเคสอื่น</button>
+        </div>
+
+    </div>
+
+    <script>
+        // Data configurations for scenarios
+        const scenarios = {
+            "normal": {
+                e1: { pred: "normal", text: "✅ ปกติ" },
+                e2: { pred: "normal", text: "✅ ปกติ" },
+                e3: { pred: "attack", text: "🚨 โจมตี!" }, // Neural Network คิดมากไป (False Positive)
+                boss: "normal",
+                reason: "<b>💡 การทำงานของ Stacking:</b><br>ผู้จัดการเห็นว่า 'นายพฤติกรรม (🧠)' แจ้งว่ามีการโจมตี แต่นายกฎเกณฑ์และนายสถิติมองว่าปกติ<br><br>จากประสบการณ์ที่ผ่านมา ผู้จัดการ <b>(Meta-Model) ได้เรียนรู้ (Train) มาแล้วว่า ในเคสทั่วไป นายพฤติกรรมมักจะคิดมากเกินไปและเตือนผิดบ่อยๆ (False Positive)</b> ผู้จัดการจึงให้น้ำหนักความน่าเชื่อถือไปที่ลูกน้องสองคนแรกมากกว่า และฟันธงว่าเป็น <b>Traffic ปกติ</b>"
+            },
+            "ddos": {
+                e1: { pred: "attack", text: "🚨 โจมตี!" }, // เก่งเรื่องปริมาณ
+                e2: { pred: "attack", text: "🚨 โจมตี!" }, // คล้ายเคสเก่า
+                e3: { pred: "attack", text: "🚨 โจมตี!" },
+                boss: "attack",
+                reason: "<b>💡 การทำงานของ Stacking:</b><br>เคสนี้ชัดเจนมาก! ลูกน้องทุกคนโหวตตรงกันว่าเป็นการโจมตี ผู้จัดการจึงรับทราบและสั่งบล็อก IP ทันทีโดยไม่มีข้อกังขา (นี่คือกรณีที่ Base Models ทุกตัวทำงานได้ดีเยี่ยม)"
+            },
+            "sqli": {
+                e1: { pred: "normal", text: "✅ ปกติ" }, // กฎเกณฑ์จับไม่เจอเพราะส่งมาน้อย
+                e2: { pred: "normal", text: "✅ ปกติ" }, // ไม่เคยเจอมาก่อน
+                e3: { pred: "attack", text: "🚨 โจมตี!" }, // NN จับแพทเทิร์นอักษรแปลกๆ ได้
+                boss: "attack",
+                reason: "<b>💡 การทำงานของ Stacking:</b><br>นี่คือจุดเด่นที่สุดของ Stacking! ผู้จัดการเห็นว่าลูกน้อง 2 คนแรกบอกว่าปกติ แต่ <b>'นายพฤติกรรม (🧠)'</b> เตือนว่าโดนโจมตี<br><br>ผู้จัดการได้เรียนรู้จากข้อมูลฝึกสอนมาว่า <b>ถ้าเป็นเคสที่มีการแอบซ่อนโค้ดเนียนๆ (ปริมาณน้อย) นายกฎเกณฑ์จะพึ่งพาไม่ได้เลย และต้องเชื่อนายพฤติกรรมเป็นหลัก!</b> ผู้จัดการ (Meta-Model) จึงปรับน้ำหนักคะแนน (Weight) ในหัวใหม่ และฟันธงว่านี่คือ <b>การโจมตี!</b> พลิกผลโหวตได้อย่างสวยงาม"
+            }
+        };
+
+        let currentScenario = "";
+
+        function sendToExperts() {
+            currentScenario = document.getElementById("scenario-select").value;
+            const data = scenarios[currentScenario];
+
+            // Show level 0 container
+            document.getElementById("level-0").classList.add("active");
+            
+            // Set predictions with slight delay for effect
+            setTimeout(() => setExpertPrediction("e1", data.e1), 300);
+            setTimeout(() => setExpertPrediction("e2", data.e2), 600);
+            setTimeout(() => setExpertPrediction("e3", data.e3), 900);
+
+            // Show next steps
+            setTimeout(() => {
+                document.getElementById("arrow").style.display = "block";
+                document.getElementById("btn-boss").style.display = "block";
+            }, 1200);
+        }
+
+        function setExpertPrediction(expertId, data) {
+            const el = document.getElementById(`pred-${expertId}`);
+            el.innerText = data.text;
+            if (data.pred === "normal") {
+                el.className = "expert-prediction pred-normal";
+            } else {
+                el.className = "expert-prediction pred-attack";
+            }
+        }
+
+        function sendToBoss() {
+            const data = scenarios[currentScenario];
+            
+            // Hide button and arrow
+            document.getElementById("arrow").style.display = "none";
+            document.getElementById("btn-boss").style.display = "none";
+            
+            // Show level 1
+            const level1 = document.getElementById("level-1");
+            level1.style.display = "block";
+
+            // Inject inputs to boss
+            const bossInputs = document.getElementById("boss-inputs");
+            bossInputs.innerHTML = `
+                <span class="input-tag" style="background-color: var(--expert1)">นายกฎเกณฑ์: ${data.e1.text}</span>
+                <span class="input-tag" style="background-color: var(--expert2)">นายสถิติ: ${data.e2.text}</span>
+                <span class="input-tag" style="background-color: var(--expert3)">นายพฤติกรรม: ${data.e3.text}</span>
+            `;
+
+            // Make Decision
+            const decisionEl = document.getElementById("boss-decision");
+            if (data.boss === "normal") {
+                decisionEl.innerText = "✅ ฟันธง: ผู้ใช้งานปกติ (ปล่อยผ่าน)";
+                decisionEl.style.backgroundColor = "var(--success)";
+            } else {
+                decisionEl.innerText = "🚨 ฟันธง: เป็นการโจมตี! (บล็อก IP ทันที)";
+                decisionEl.style.backgroundColor = "var(--danger)";
+            }
+
+            // Inject Reason
+            document.getElementById("boss-reason").innerHTML = data.reason;
+
+            // Scroll to bottom
+            level1.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+
+        function resetGame() {
+            // Reset UI
+            document.getElementById("level-0").classList.remove("active");
+            document.getElementById("level-1").style.display = "none";
+            
+            const experts = ['e1', 'e2', 'e3'];
+            experts.forEach(e => {
+                const el = document.getElementById(`pred-${e}`);
+                el.innerText = "รอข้อมูล...";
+                el.className = "expert-prediction";
+            });
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
