@@ -1,1 +1,302 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Decision Tree - เกมทายสัตว์</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --node-bg: #ffffff;
+            --text: #1e293b;
+        }
 
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 30px;
+            max-width: 600px;
+        }
+
+        /* ส่วนของเกมทายใจ (Question Box) */
+        .game-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            margin-bottom: 40px;
+            width: 100%;
+            max-width: 500px;
+            min-height: 180px;
+        }
+
+        #question-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 25px;
+            color: var(--text);
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+            font-weight: bold;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
+
+        .btn-yes { background-color: var(--success); color: white; }
+        .btn-no { background-color: var(--danger); color: white; }
+        .btn-reset { background-color: var(--primary); color: white; display: none; margin: 0 auto;}
+
+        /* ส่วนของการแสดงผล Decision Tree */
+        .tree-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            width: 100%;
+            max-width: 900px;
+            overflow-x: auto;
+            padding-bottom: 20px;
+        }
+
+        .level {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            gap: 15px;
+        }
+
+        .node {
+            background: var(--node-bg);
+            border: 2px solid #cbd5e1;
+            padding: 15px;
+            border-radius: 8px;
+            width: 120px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            opacity: 0.4;
+            transition: all 0.4s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .node.leaf {
+            border-style: dashed;
+            border-color: #94a3b8;
+        }
+
+        /* State Classes */
+        .node.active {
+            opacity: 1;
+            border-color: var(--primary);
+            background-color: #eff6ff;
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);
+        }
+
+        .node.passed {
+            opacity: 0.8;
+            border-color: var(--success);
+            background-color: #f0fdf4;
+        }
+
+        .node.result {
+            opacity: 1;
+            border-color: #f59e0b;
+            background-color: #fffbeb;
+            color: #d97706;
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+        }
+
+        .spacer {
+            width: 120px; /* ใช้สำหรับจัด Layout ให้ตรงกัน */
+        }
+        
+        #explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e0f2fe;
+            border-left: 4px solid var(--primary);
+            border-radius: 0 8px 8px 0;
+            display: none;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🌳 เล่นเกมกับ Decision Tree</h1>
+    <div class="subtitle">
+        ลองตอบคำถามด้านล่าง แล้วสังเกตว่า AI ใช้เงื่อนไข (Conditions) ในการแยกแยะข้อมูลเพื่อหาคำตอบสุดท้าย (Leaf Node) ได้อย่างไร!
+    </div>
+
+    <!-- ส่วนที่ใช้ตอบคำถาม -->
+    <div class="game-container">
+        <div id="question-text">มันมี "ปีก" ใช่หรือไม่?</div>
+        
+        <div class="btn-group" id="action-buttons">
+            <button class="btn-yes" onclick="answer('yes')">✅ ใช่</button>
+            <button class="btn-no" onclick="answer('no')">❌ ไม่ใช่</button>
+        </div>
+        
+        <button class="btn-reset" id="reset-btn" onclick="resetGame()">🔄 เริ่มเล่นใหม่</button>
+        
+        <div id="explanation"></div>
+    </div>
+
+    <!-- ส่วนจำลองต้นไม้ตัดสินใจ (Visualized Tree) -->
+    <div class="tree-container">
+        <!-- ชั้นที่ 1 (Root Node) -->
+        <div class="level">
+            <div id="node-1" class="node active">Q1: มีปีก?</div>
+        </div>
+
+        <!-- ชั้นที่ 2 -->
+        <div class="level">
+            <div id="node-2" class="node">Q2: ว่ายน้ำได้?</div>
+            <div id="node-3" class="node">Q3: มี 4 ขา?</div>
+        </div>
+
+        <!-- ชั้นที่ 3 -->
+        <div class="level">
+            <div id="leaf-penguin" class="node leaf">🐧 เพนกวิน</div>
+            <div id="leaf-eagle" class="node leaf">🦅 นกอินทรี</div>
+            <div id="node-4" class="node">Q4: ร้องเหมียว?</div>
+            <div id="leaf-snake" class="node leaf">🐍 งู</div>
+        </div>
+
+        <!-- ชั้นที่ 4 -->
+        <div class="level">
+            <div class="spacer"></div>
+            <div class="spacer"></div>
+            <div id="leaf-cat" class="node leaf">🐱 แมว</div>
+            <div id="leaf-dog" class="node leaf">🐶 สุนัข</div>
+        </div>
+    </div>
+
+    <script>
+        // โครงสร้างของ Decision Tree (State Machine)
+        const treeData = {
+            1: { text: 'สัตว์ตัวนี้มี "ปีก" ใช่หรือไม่?', yes: 2, no: 3, id: 'node-1' },
+            2: { text: 'มันสามารถ "ว่ายน้ำ" ได้เก่งใช่หรือไม่?', yes: 'penguin', no: 'eagle', id: 'node-2' },
+            3: { text: 'มันมี "4 ขา" ใช่หรือไม่?', yes: 4, no: 'snake', id: 'node-3' },
+            4: { text: 'มันร้อง "เหมียวๆ" ใช่หรือไม่?', yes: 'cat', no: 'dog', id: 'node-4' }
+        };
+
+        // ข้อมูลของผลลัพธ์ (Leaf Nodes)
+        const leavesData = {
+            'penguin': { name: '🐧 เพนกวิน', id: 'leaf-penguin' },
+            'eagle': { name: '🦅 นกอินทรี', id: 'leaf-eagle' },
+            'cat': { name: '🐱 แมว', id: 'leaf-cat' },
+            'dog': { name: '🐶 สุนัข', id: 'leaf-dog' },
+            'snake': { name: '🐍 งู', id: 'leaf-snake' }
+        };
+
+        let currentNode = 1;
+        let pathTaken = []; // เก็บประวัติการตอบคำถามเพื่อนำไปอธิบาย
+
+        function answer(choice) {
+            const nodeInfo = treeData[currentNode];
+            
+            // เปลี่ยนสถานะ Node ปัจจุบันให้เป็น Passed (ผ่านแล้ว)
+            document.getElementById(nodeInfo.id).classList.remove('active');
+            document.getElementById(nodeInfo.id).classList.add('passed');
+
+            // บันทึก path
+            pathTaken.push(`${nodeInfo.text} -> <b>${choice === 'yes' ? 'ใช่' : 'ไม่ใช่'}</b>`);
+
+            // หา Node ถัดไป
+            const nextStep = nodeInfo[choice];
+
+            if (typeof nextStep === 'number') {
+                // ยังเป็น Node คำถามต่อไป
+                currentNode = nextStep;
+                document.getElementById('question-text').innerText = treeData[currentNode].text;
+                
+                // Highlight Node ถัดไป
+                document.getElementById(treeData[currentNode].id).classList.add('active');
+            } else {
+                // ไปถึง Leaf Node (ผลลัพธ์)
+                showResult(nextStep);
+            }
+        }
+
+        function showResult(leafKey) {
+            const leafInfo = leavesData[leafKey];
+            
+            // ซ่อนปุ่มกด ใช่/ไม่ใช่
+            document.getElementById('action-buttons').style.display = 'none';
+            document.getElementById('reset-btn').style.display = 'block';
+            
+            // แสดงคำตอบ
+            document.getElementById('question-text').innerHTML = `🎉 AI ทายว่าสัตว์ตัวนั้นคือ: <br><span style="font-size: 2.5rem; color: #f59e0b;">${leafInfo.name}</span>`;
+            
+            // Highlight ผลลัพธ์ใน Tree
+            document.getElementById(leafInfo.id).classList.add('result');
+
+            // แสดงคำอธิบาย (Explainable AI Concept)
+            const explanationDiv = document.getElementById('explanation');
+            explanationDiv.style.display = 'block';
+            explanationDiv.innerHTML = `<strong>🤖 ทำไม AI ถึงคิดว่าเป็นสิ่งนี้? (Decision Path)</strong><br>` 
+                                     + pathTaken.join('<br>');
+        }
+
+        function resetGame() {
+            currentNode = 1;
+            pathTaken = [];
+
+            // Reset UI
+            document.getElementById('action-buttons').style.display = 'flex';
+            document.getElementById('reset-btn').style.display = 'none';
+            document.getElementById('explanation').style.display = 'none';
+            document.getElementById('question-text').innerText = treeData[currentNode].text;
+
+            // Reset Tree Visualization
+            const allNodes = document.querySelectorAll('.node');
+            allNodes.forEach(node => {
+                node.classList.remove('active', 'passed', 'result');
+            });
+            
+            // Start at root
+            document.getElementById(treeData[1].id).classList.add('active');
+        }
+    </script>
+</body>
+</html>
