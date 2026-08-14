@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear Regression Game - เกมสร้างเส้นพยากรณ์</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1000px;
+            justify-content: center;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            flex: 1;
+            min-width: 320px;
+            max-width: 400px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .equation-box {
+            background: #eff6ff;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+            font-size: 1.2rem;
+            text-align: center;
+            font-family: monospace;
+            font-weight: bold;
+            color: #1e3a8a;
+        }
+
+        .param-group { margin-bottom: 15px; }
+
+        .param-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .error-box {
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: 2px dashed #cbd5e1;
+            background: #f8fafc;
+            transition: all 0.3s;
+        }
+
+        .error-value {
+            font-size: 2.5rem;
+            color: var(--danger);
+            display: block;
+            margin-top: 10px;
+            transition: color 0.3s;
+        }
+
+        .btn-solve {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn-solve:hover { transform: scale(1.02); background-color: #1d4ed8; }
+
+        /* Plot Panel */
+        .plot-panel {
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+        }
+
+        canvas {
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .axis-label {
+            font-weight: bold;
+            color: #64748b;
+            font-size: 0.9rem;
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0fdf4;
+            border-left: 4px solid var(--success);
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+            color: #14532d;
+            line-height: 1.6;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>📈 Linear Regression: สร้างเส้นพยากรณ์ Cloud Load</h1>
+    <div class="subtitle">
+        สมมติว่าเรามีข้อมูลการใช้งาน Cloud Server จุดสีน้ำเงินคือ <b>"ข้อมูลในอดีต"</b> (ผู้ใช้ X คน ทำให้เกิดโหลด Y%)<br>
+        เป้าหมายของคุณคือการปรับค่า <b>ความชัน (W)</b> และ <b>จุดเริ่มต้น (b)</b> เพื่อลากเส้นตรงที่ทายข้อมูลได้แม่นยำที่สุด (เกิด Error น้อยที่สุด)!
+    </div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="equation-box">
+                Load = (W × Users) + b
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span>📐 ความชัน (W - Weight)</span>
+                    <span id="val-w">1.0</span>
+                </div>
+                <div style="font-size: 0.85rem; color: #64748b; margin-bottom: 5px;">อัตราการเพิ่ม: ผู้ใช้เพิ่ม 1 คน โหลดเพิ่มกี่ %</div>
+                <input type="range" id="slide-w" min="0" max="3" step="0.1" value="1.0" oninput="updatePlot()">
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span>🎯 จุดเริ่มต้น (b - Bias)</span>
+                    <span id="val-b">0</span>
+                </div>
+                <div style="font-size: 0.85rem; color: #64748b; margin-bottom: 5px;">โหลดพื้นฐาน: ตอนที่ยังไม่มีผู้ใช้งานเลย (0 คน)</div>
+                <input type="range" id="slide-b" min="0" max="50" step="1" value="0" oninput="updatePlot()">
+            </div>
+
+            <div class="error-box" id="error-box">
+                ระยะผิดพลาดรวม (Total Error)
+                <span class="error-value" id="val-error">0</span>
+                <div id="status-text" style="font-size: 0.9rem; margin-top: 10px; color: #64748b;">
+                    เส้นสีแดงคือระยะความคลาดเคลื่อน<br>พยายามทำให้ตัวเลขนี้ <b>ต่ำที่สุด!</b>
+                </div>
+            </div>
+
+            <button class="btn-solve" onclick="autoSolve()">🤖 ให้ Machine Learning ช่วยคำนวณ (Auto Fit)</button>
+
+            <div class="explanation">
+                <strong>💡 สิ่งที่คุณกำลังทำคือ "การเทรนโมเดล"</strong><br>
+                การที่คุณเลื่อนสไลเดอร์เพื่อหาค่า W และ b ที่ทำให้ Error ต่ำที่สุด นั่นคือกระบวนการเดียวกับที่ AI ทำเป๊ะๆ! (อัลกอริทึมนี้เรียกว่า <i>Gradient Descent</i> หรือ <i>Least Squares</i>)
+            </div>
+        </div>
+
+        <!-- Plot Panel -->
+        <div class="plot-panel">
+            <canvas id="regressionCanvas" width="500" height="400"></canvas>
+            <div class="axis-label">จำนวนผู้ใช้งาน (Users) ➡️</div>
+        </div>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById('regressionCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        // ข้อมูลจำลอง: จำนวนผู้ใช้ (X) และ CPU Load (Y)
+        const dataPoints = [
+            {x: 10, y: 25}, {x: 20, y: 45}, {x: 30, y: 55},
+            {x: 40, y: 70}, {x: 50, y: 85}, {x: 60, y: 90},
+            {x: 70, y: 110}, {x: 80, y: 125}, {x: 90, y: 140}
+        ];
+
+        // ฟังก์ชันแปลงพิกัดข้อมูลจริง ให้เป็นพิกัดบน Canvas (Scale)
+        const minX = 0; const maxX = 100;
+        const minY = 0; const maxY = 150;
+
+        function mapX(val) { return (val - minX) / (maxX - minX) * (width - 40) + 20; }
+        function mapY(val) { return height - ((val - minY) / (maxY - minY) * (height - 40) + 20); }
+
+        function drawGrid() {
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            // แนวตั้ง
+            for(let i=0; i<=100; i+=10) {
+                ctx.beginPath(); ctx.moveTo(mapX(i), 0); ctx.lineTo(mapX(i), height); ctx.stroke();
+            }
+            // แนวนอน
+            for(let i=0; i<=150; i+=25) {
+                ctx.beginPath(); ctx.moveTo(0, mapY(i)); ctx.lineTo(width, mapY(i)); ctx.stroke();
+            }
+        }
+
+        function updatePlot() {
+            const W = parseFloat(document.getElementById('slide-w').value);
+            const b = parseFloat(document.getElementById('slide-b').value);
+
+            document.getElementById('val-w').innerText = W.toFixed(1);
+            document.getElementById('val-b').innerText = b;
+
+            ctx.clearRect(0, 0, width, height);
+            drawGrid();
+
+            let totalError = 0;
+
+            // 1. วาดเส้นข้อผิดพลาด (Residuals / Errors) ก่อน (เส้นสีแดง)
+            dataPoints.forEach(pt => {
+                const predictedY = (W * pt.x) + b;
+                const error = Math.abs(pt.y - predictedY);
+                totalError += error; // ใช้ Mean Absolute Error แบบเข้าใจง่ายสำหรับผู้เริ่มต้น
+
+                // วาดเส้นประสีแดง
+                ctx.beginPath();
+                ctx.moveTo(mapX(pt.x), mapY(pt.y));
+                ctx.lineTo(mapX(pt.x), mapY(predictedY));
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.5)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([5, 5]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            });
+
+            // 2. วาดเส้นพยากรณ์หลัก (Regression Line)
+            ctx.beginPath();
+            ctx.moveTo(mapX(0), mapY((W * 0) + b));
+            ctx.lineTo(mapX(100), mapY((W * 100) + b));
+            ctx.strokeStyle = 'var(--primary)';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // 3. วาดจุดข้อมูลจริง (Data Points)
+            dataPoints.forEach(pt => {
+                ctx.beginPath();
+                ctx.arc(mapX(pt.x), mapY(pt.y), 6, 0, Math.PI * 2);
+                ctx.fillStyle = '#1e293b';
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1.5;
+                ctx.stroke();
+            });
+
+            // 4. อัปเดต Error Score UI
+            const errorUI = document.getElementById('val-error');
+            const scoreBox = document.getElementById('error-box');
+            errorUI.innerText = Math.round(totalError);
+
+            // ตรวจสอบว่าใกล้เคียง Optimal หรือยัง (Optimal W~1.4, b~10)
+            if (totalError < 45) {
+                errorUI.style.color = 'var(--success)';
+                scoreBox.style.borderColor = 'var(--success)';
+                scoreBox.style.backgroundColor = '#f0fdf4';
+                document.getElementById('status-text').innerHTML = "🏆 <b>ยอดเยี่ยม!</b> นี่คือเส้นพยากรณ์ที่ดีที่สุดแล้ว";
+            } else {
+                errorUI.style.color = 'var(--danger)';
+                scoreBox.style.borderColor = '#cbd5e1';
+                scoreBox.style.backgroundColor = '#f8fafc';
+                document.getElementById('status-text').innerHTML = "เส้นสีแดงคือระยะความคลาดเคลื่อน<br>พยายามทำให้ตัวเลขนี้ <b>ต่ำที่สุด!</b>";
+            }
+        }
+
+        // อัลกอริทึมเฉลย (หาค่า Optimal ด้วยสมการ Ordinary Least Squares)
+        function autoSolve() {
+            let sumX = 0, sumY = 0, sumXY = 0, sumXX = 0;
+            let n = dataPoints.length;
+            
+            dataPoints.forEach(pt => {
+                sumX += pt.x;
+                sumY += pt.y;
+                sumXY += pt.x * pt.y;
+                sumXX += pt.x * pt.x;
+            });
+
+            // คำนวณความชัน (m หรือ W)
+            let optimalW = (n * sumXY - sumX * sumY) / (n * sumXX - sumX * sumX);
+            // คำนวณจุดตัดแกน Y (c หรือ b)
+            let optimalB = (sumY - optimalW * sumX) / n;
+
+            // นำค่าไปใส่ใน Slider
+            document.getElementById('slide-w').value = optimalW.toFixed(1);
+            document.getElementById('slide-b').value = Math.round(optimalB);
+            
+            updatePlot();
+        }
+
+        // โหลดครั้งแรก
+        updatePlot();
+    </script>
+</body>
+</html>
