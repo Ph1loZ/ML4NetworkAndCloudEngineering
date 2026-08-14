@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transformer Tuning - จูนสถาปัตยกรรม AI ระดับโลก</title>
+    <style>
+        :root {
+            --primary: #8b5cf6; /* Violet */
+            --secondary: #0ea5e9; /* Sky blue */
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            flex: 1;
+            min-width: 350px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .param-group {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+        }
+
+        .param-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .param-value {
+            background: var(--primary);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+        }
+
+        .param-desc {
+            font-size: 0.85rem;
+            color: #475569;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        select, input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            outline: none;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        /* Visualization Panel */
+        .visualization-panel {
+            flex: 1.5;
+            min-width: 500px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-container {
+            margin-top: 10px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .bar-group { margin-bottom: 20px; }
+        .bar-label { font-weight: bold; margin-bottom: 8px; display: flex; justify-content: space-between; }
+        .bar-track {
+            width: 100%; height: 25px; background: #e2e8f0; border-radius: 12px; overflow: hidden;
+        }
+        .bar-fill {
+            height: 100%; width: 0%; transition: width 0.5s ease-out, background-color 0.3s;
+            display: flex; align-items: center; justify-content: flex-end;
+            padding-right: 15px; color: white; font-weight: bold; font-size: 0.9rem;
+        }
+
+        /* Architecture Visualizer */
+        .arch-box {
+            margin-top: 20px;
+            padding: 15px;
+            background: #eff6ff;
+            border-radius: 12px;
+            text-align: center;
+            border: 2px dashed #bfdbfe;
+        }
+
+        .head-display {
+            display: flex;
+            justify-content: center;
+            gap: 5px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .head-block {
+            background: var(--secondary);
+            color: white;
+            font-size: 0.75rem;
+            padding: 5px 0;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .feedback-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            border-left: 5px solid transparent;
+            transition: all 0.3s;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>🧠 จูนพารามิเตอร์ Transformer (หัวใจของ LLM)</h1>
+    <div class="subtitle">
+        ออกแบบสถาปัตยกรรมของ AI (เหมือนการสร้าง ChatGPT รุ่นจิ๋ว) <br>
+        ค้นหาจุดสมดุลระหว่าง <b>ความฉลาด (Capability)</b> กับ <b>ข้อจำกัดด้านฮาร์ดแวร์ (VRAM/Speed)</b>
+    </div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            
+            <div class="param-group">
+                <div class="param-header">
+                    <span>1. d_model (มิติของคำ)</span>
+                    <span class="param-value" id="val-dmodel">256</span>
+                </div>
+                <div class="param-desc">
+                    ความกว้างของเวกเตอร์ที่ใช้เก็บความหมายของ 1 คำ (ยิ่งกว้าง ยิ่งเก็บรายละเอียดภาษาได้ลึกซึ้ง แต่เปลืองแรม)
+                </div>
+                <select id="sel-dmodel" onchange="updateTransformer()">
+                    <option value="64">64 (ความจุน้อย)</option>
+                    <option value="128">128</option>
+                    <option value="256" selected>256 (มาตรฐาน)</option>
+                    <option value="512">512</option>
+                    <option value="1024">1024 (ระดับโมเดลขนาดใหญ่)</option>
+                </select>
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span>2. n_heads (จำนวนหัว Attention)</span>
+                    <span class="param-value" id="val-heads">4</span>
+                </div>
+                <div class="param-desc">
+                    จำนวน "ผู้เชี่ยวชาญ" ที่ช่วยกันอ่านประโยค (คนนึงดูไวยากรณ์, คนนึงดูอารมณ์, ฯลฯ) <br>
+                    <span style="color: var(--danger); font-weight: bold;">*กฎเหล็ก: d_model ต้องหาร n_heads ลงตัวเป๊ะ!</span>
+                </div>
+                <select id="sel-heads" onchange="updateTransformer()">
+                    <option value="2">2 หัว</option>
+                    <option value="4" selected>4 หัว</option>
+                    <option value="8">8 หัว</option>
+                    <option value="16">16 หัว</option>
+                </select>
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span>3. num_layers (จำนวนชั้น)</span>
+                    <span class="param-value" id="val-layers">4</span>
+                </div>
+                <div class="param-desc">
+                    จำนวนชั้นการคิดวิเคราะห์ ยิ่งลึก AI ยิ่งเข้าใจความสัมพันธ์ที่ซับซ้อน แต่ก็ทำให้เวลาประมวลผลช้าลงมาก (Latency)
+                </div>
+                <input type="range" id="slide-layers" min="1" max="12" step="1" value="4" oninput="updateTransformer()">
+            </div>
+            
+            <div class="param-group" style="margin-bottom: 0; border: none;">
+                <div class="param-header">
+                    <span>4. Dropout</span>
+                    <span class="param-value" style="background:#64748b;" id="val-drop">0.1</span>
+                </div>
+                <div class="param-desc">
+                    เทคนิคแกล้งลืมข้อมูลชั่วคราว เพื่อป้องกันการท่องจำข้อสอบ (Overfitting)
+                </div>
+                <input type="range" id="slide-drop" min="0" max="0.5" step="0.1" value="0.1" oninput="updateTransformer()">
+            </div>
+
+        </div>
+
+        <!-- Visualization Panel -->
+        <div class="plot-panel">
+            <h2 style="margin: 0 0 15px 0; color: var(--primary);">การประเมินสถาปัตยกรรม (Architecture Evaluation)</h2>
+            
+            <div class="chart-container">
+                <div class="bar-group">
+                    <div class="bar-label">
+                        <span style="color: var(--success);">🧠 ความฉลาด / ความเข้าใจภาษา (Capability)</span>
+                        <span id="txt-intel">0%</span>
+                    </div>
+                    <div class="bar-track"><div class="bar-fill" id="bar-intel" style="background-color: var(--success);"></div></div>
+                </div>
+
+                <div class="bar-group">
+                    <div class="bar-label">
+                        <span style="color: var(--danger);">💻 การใช้หน่วยความจำการ์ดจอ (VRAM Usage)</span>
+                        <span id="txt-vram">0%</span>
+                    </div>
+                    <div class="bar-track"><div class="bar-fill" id="bar-vram" style="background-color: var(--danger);"></div></div>
+                </div>
+
+                <div class="bar-group">
+                    <div class="bar-label">
+                        <span style="color: var(--warning);">⏱️ ความช้าในการตอบกลับ (Latency / Generation Time)</span>
+                        <span id="txt-time">0%</span>
+                    </div>
+                    <div class="bar-track"><div class="bar-fill" id="bar-time" style="background-color: var(--warning);"></div></div>
+                </div>
+            </div>
+
+            <!-- Architecture Drawing -->
+            <div class="arch-box">
+                <h3 style="margin: 0 0 5px 0; color: #1e3a8a;">โครงสร้าง Multi-Head Attention</h3>
+                <div style="font-size: 0.85rem; color: #64748b;">(การแบ่งพื้นที่ d_model ให้ผู้เชี่ยวชาญแต่ละหัวรับผิดชอบ)</div>
+                <div class="head-display" id="head-display">
+                    <!-- จะถูกสร้างด้วย JS -->
+                </div>
+            </div>
+
+            <div class="feedback-box" id="feedback-box">
+                กำลังวิเคราะห์...
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function updateTransformer() {
+            // ดึงค่าตัวแปร
+            const d_model = parseInt(document.getElementById('sel-dmodel').value);
+            const n_heads = parseInt(document.getElementById('sel-heads').value);
+            const layers = parseInt(document.getElementById('slide-layers').value);
+            const dropout = parseFloat(document.getElementById('slide-drop').value);
+
+            // อัปเดต UI Texts
+            document.getElementById('val-dmodel').innerText = d_model;
+            document.getElementById('val-heads').innerText = n_heads;
+            document.getElementById('val-layers').innerText = layers;
+            document.getElementById('val-drop').innerText = dropout.toFixed(1);
+
+            const fbBox = document.getElementById('feedback-box');
+            let feedback = [];
+
+            // 1. ตรวจสอบกฎเหล็ก (Constraint Check)
+            if (d_model % n_heads !== 0) {
+                // พัง (Error State)
+                document.getElementById('bar-intel').style.width = '0%'; document.getElementById('txt-intel').innerText = 'ERROR';
+                document.getElementById('bar-vram').style.width = '0%'; document.getElementById('txt-vram').innerText = 'ERROR';
+                document.getElementById('bar-time').style.width = '0%'; document.getElementById('txt-time').innerText = 'ERROR';
+                document.getElementById('head-display').innerHTML = '<span style="color:red; font-weight:bold;">สถาปัตยกรรมพังทลาย!</span>';
+                
+                fbBox.style.backgroundColor = '#fee2e2'; fbBox.style.borderLeftColor = 'var(--danger)';
+                fbBox.innerHTML = `🚨 <b>สถาปัตยกรรมล้มเหลว (Runtime Error):</b><br>
+                                 กฎเหล็กของ Transformer คือ <b>d_model ต้องหาร n_heads ลงตัว!</b> <br>
+                                 ตอนนี้คุณพยายามเอาเวกเตอร์ขนาด ${d_model} ไปแบ่งให้ผู้เชี่ยวชาญ ${n_heads} คน ซึ่งหารไม่ลงตัว โมเดลจะ Error ทันที! โปรดปรับค่าใหม่ครับ`;
+                return;
+            }
+
+            // 2. คำนวณขนาดย่อย (Head Dimension)
+            const head_dim = d_model / n_heads;
+            
+            // วาด Head Blocks
+            const headContainer = document.getElementById('head-display');
+            headContainer.innerHTML = '';
+            for (let i = 0; i < n_heads; i++) {
+                const block = document.createElement('div');
+                block.className = 'head-block';
+                // คำนวณความกว้างตาม % (เพื่อให้พอดีบรรทัด)
+                let flexBasis = Math.max((100 / n_heads) - 2, 5); // หัก gap 2%
+                block.style.flexBasis = `${flexBasis}%`;
+                block.innerText = `Head ${i+1}\n(${head_dim} dim)`;
+                headContainer.appendChild(block);
+            }
+
+            // 3. จำลองผลลัพธ์ Performance
+            // VRAM Usage: แปลผันตาม (d_model^2 * layers) + (n_heads) [จำลองแบบคร่าวๆ]
+            const maxVramConfig = (1024 * 1024 * 12); 
+            let currentVramConfig = (d_model * d_model * layers);
+            let vramPct = (currentVramConfig / maxVramConfig) * 100;
+            if (vramPct < 2) vramPct = 2; // min display
+
+            // Latency (Time): แปลผันตาม (layers) และนิดหน่อยกับ d_model
+            let timePct = (layers / 12) * 80 + (d_model / 1024) * 20;
+
+            // Intelligence: แปลผันตาม Layers, d_model และ n_heads แต่อาจเกิด Overfit ถ้า dropout ต่ำไป
+            // Base cap based on model size
+            let intelBase = (Math.log2(d_model) / Math.log2(1024)) * 40; // up to 40% from d_model
+            let layerBonus = (layers / 12) * 45; // up to 45% from layers
+            let headBonus = (n_heads / 16) * 15; // up to 15% from heads
+            
+            let intelPct = intelBase + layerBonus + headBonus;
+
+            // Apply Dropout Penalty/Bonus
+            if (layers > 6 && d_model > 256 && dropout < 0.1) {
+                // Overfitting!
+                intelPct -= 25; 
+                feedback.push("🚨 <b>อาการ Overfitting:</b> โมเดลคุณใหญ่มาก (Layer ลึก + d_model กว้าง) แต่แทบไม่มีการตั้ง Dropout เลย! มันจะท่องจำข้อสอบได้แม่น แต่ไปเจอสถานการณ์จริงจะตอบมั่วมาก (ความฉลาดลดลง)");
+            } else if (dropout > 0.3) {
+                intelPct -= (dropout * 40); // Too much dropout makes it dumb
+                feedback.push("⚠️ <b>Amnesia:</b> ตั้งค่า Dropout สูงเกินไป ทำให้ลืมความรู้ระหว่างการฝึกเยอะเกิน โมเดลจึงไม่ฉลาดเท่าที่ควร");
+            }
+
+            // Cap limits
+            if (vramPct > 100) vramPct = 100;
+            if (timePct > 100) timePct = 100;
+            if (intelPct > 98) intelPct = 98 + Math.random(); // Cap at ~99%
+            if (intelPct < 5) intelPct = 5;
+
+            // Update UI Bars
+            document.getElementById('bar-vram').style.width = vramPct + '%';
+            document.getElementById('txt-vram').innerText = vramPct.toFixed(1) + '%';
+            
+            document.getElementById('bar-time').style.width = timePct + '%';
+            document.getElementById('txt-time').innerText = timePct.toFixed(1) + '%';
+            
+            document.getElementById('bar-intel').style.width = intelPct + '%';
+            document.getElementById('txt-intel').innerText = intelPct.toFixed(1) + '%';
+
+            // 4. Generate Feedback Text
+            fbBox.style.backgroundColor = '#eff6ff'; 
+            fbBox.style.borderLeftColor = 'var(--primary)';
+
+            if (vramPct > 90) {
+                feedback.push("🔥 <b>VRAM กำลังจะทะลุ (Out of Memory):</b> การใช้ d_model=1024 และ Layer หนาขนาดนี้ จะกินแรมการ์ดจอมหาศาล (เหมือนเอาข้อมูลยัดใส่รถบรรทุกหลายคัน) เตรียมใจเช่า Cloud GPU ระดับ A100 ไว้ได้เลยครับ!");
+                fbBox.style.backgroundColor = '#fef2f2'; fbBox.style.borderLeftColor = 'var(--danger)';
+            }
+            if (head_dim < 16) {
+                feedback.push("⚠️ <b>Head Dimension เล็กเกินไป:</b> แม้จะสับได้หลายหัว (n_heads สูง) แต่มิติรับผิดชอบต่อ 1 หัว (${head_dim} dim) เล็กเกินไป ทำให้ผู้เชี่ยวชาญแต่ละคนวิเคราะห์อะไรแทบไม่ได้เลย (แนะนำให้ Head dim อยู่ที่ 32-64 ขึ้นไป)");
+            }
+            if (feedback.length === 0) {
+                feedback.push("✅ <b>โครงสร้างสมดุลดี:</b> สถาปัตยกรรมทำงานประสานกันได้ดี ไม่มีคอขวด นี่คือจุดเริ่มต้นที่ดีในการ Train โมเดลภาษาครับ");
+                fbBox.style.backgroundColor = '#dcfce7'; fbBox.style.borderLeftColor = 'var(--success)';
+            }
+
+            feedback.unshift(`<b>รายละเอียด Head:</b> แบ่งพื้นที่ ${d_model} มิติ ให้ ${n_heads} หัว -> ผู้เชี่ยวชาญ 1 คนจะรับผิดชอบความหมายคนละ <b>${head_dim} มิติ</b>`);
+            fbBox.innerHTML = feedback.join("<br><br>");
+        }
+
+        // Init First Load
+        updateTransformer();
+    </script>
+</body>
+</html>
