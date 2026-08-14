@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Transformer Interactive Game - โยงใยความสัมพันธ์</title>
+    <style>
+        :root {
+            --primary: #8b5cf6; /* Violet */
+            --primary-rgb: 139, 92, 246; /* For opacity */
+            --secondary: #0ea5e9; /* Light blue */
+            --success: #10b981;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            width: 100%;
+            max-width: 1000px;
+            align-items: center;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-around;
+            gap: 15px;
+            border-top: 5px solid var(--primary);
+        }
+
+        .scenario-select {
+            flex: 1;
+            min-width: 250px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        select {
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 1rem;
+            outline: none;
+            cursor: pointer;
+        }
+
+        .toggle-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: #f1f5f9;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        /* Toggle Switch */
+        .switch { position: relative; display: inline-block; width: 44px; height: 22px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider-toggle { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 22px; }
+        .slider-toggle:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider-toggle { background-color: var(--primary); }
+        input:checked + .slider-toggle:before { transform: translateX(22px); }
+
+        /* Attention Visualization Area */
+        .attention-panel {
+            background: var(--card);
+            padding: 40px 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 250px;
+            position: relative;
+        }
+
+        .hint-text {
+            color: #64748b;
+            margin-bottom: 25px;
+            font-style: italic;
+        }
+
+        .sentence-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            margin-bottom: 30px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .word-card {
+            position: relative;
+            background: white;
+            border: 2px solid #e2e8f0;
+            padding: 15px 25px;
+            border-radius: 12px;
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #334155;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            user-select: none;
+        }
+
+        .word-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            border-color: #cbd5e1;
+        }
+
+        .word-card.active {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(139, 92, 246, 0.2);
+            transform: scale(1.1);
+            z-index: 10;
+        }
+
+        .attention-weight {
+            position: absolute;
+            top: -25px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--primary);
+            opacity: 0;
+            transition: opacity 0.3s;
+            background: #f3e8ff;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+        .pos-tag {
+            position: absolute;
+            bottom: -20px;
+            font-size: 0.8rem;
+            color: #0ea5e9;
+            background: #e0f2fe;
+            padding: 2px 6px;
+            border-radius: 6px;
+            display: none;
+        }
+
+        /* Feedback */
+        .feedback-box {
+            background: #eff6ff;
+            padding: 20px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            color: #1e3a8a;
+            width: 100%;
+            box-sizing: border-box;
+            border-left: 5px solid var(--secondary);
+            line-height: 1.6;
+            display: none;
+            animation: fadeIn 0.5s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>🌐 Transformer: พลังแห่ง Self-Attention</h1>
+    <div class="subtitle">
+        AI อ่านทุกคำในประโยคพร้อมกัน! และใช้ <b>"Self-Attention"</b> เพื่อให้คะแนนว่าคำไหนมีความสัมพันธ์กับคำไหนมากที่สุด <br>
+        นี่คือเคล็ดลับที่ทำให้ ChatGPT เข้าใจคำพ้องรูป คำกำกวม และบริบทของภาษาได้อย่างลึกซึ้ง
+    </div>
+
+    <div class="container">
+        
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="scenario-select">
+                <label style="font-weight: bold; color: var(--primary);">1. เลือกประโยคทดสอบ:</label>
+                <select id="scenario-dropdown" onchange="loadScenario()">
+                    <option value="s1">เคสที่ 1: "แอปเปิล" ในบริบทบริษัทเทคโนโลยี</option>
+                    <option value="s2">เคสที่ 2: "แอปเปิล" ในบริบทผลไม้</option>
+                    <option value="s3">เคสที่ 3: "แบงก์" ในบริบทการเงิน vs ชื่อคน</option>
+                </select>
+            </div>
+
+            <div class="toggle-group">
+                <span>2. เปิดใช้ Positional Encoding (ป้ายบอกลำดับคำ)</span>
+                <label class="switch">
+                    <input type="checkbox" id="toggle-pos" onchange="togglePosition()">
+                    <span class="slider-toggle"></span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Attention Panel -->
+        <div class="attention-panel">
+            <div class="hint-text">👆 <b>คลิกที่คำศัพท์แต่ละคำ</b> เพื่อดูว่า AI สแกนหาความเชื่อมโยง (Attention) ไปที่คำไหนบ้าง</div>
+            
+            <div class="sentence-container" id="sentence-container">
+                <!-- Words will be generated here -->
+            </div>
+
+            <div class="feedback-box" id="feedback-box">
+                <!-- Feedback will appear here -->
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        // ข้อมูลจำลองความสนใจ (Attention Weights) 0.0 - 1.0
+        const scenarios = {
+            s1: {
+                words: ["แอปเปิล", "เพิ่ง", "เปิดตัว", "มือถือ", "รุ่น", "ใหม่"],
+                attentions: {
+                    0: [1.0, 0.1, 0.6, 0.9, 0.2, 0.1], // 'แอปเปิล' มองไปที่ 'มือถือ' เป็นหลัก
+                    3: [0.9, 0.1, 0.8, 1.0, 0.6, 0.5]  // 'มือถือ' มองไปที่ 'แอปเปิล' และ 'เปิดตัว'
+                },
+                feedbacks: {
+                    0: "<b>💡 AI คิดอย่างไร?:</b> เมื่อคลิกคำว่า <b>'แอปเปิล'</b> คุณจะเห็นว่า AI ให้น้ำหนัก (สีม่วงเข้ม) ไปที่คำว่า <b>'มือถือ' (90%)</b> และ 'เปิดตัว' (60%) มันจึงรู้ทันทีว่า แอปเปิลในที่นี้คือ 'บริษัทเทคโนโลยี' ไม่ใช่ผลไม้!",
+                    3: "<b>💡 AI คิดอย่างไร?:</b> เมื่อคลิกคำว่า <b>'มือถือ'</b> AI จะให้ความสนใจกลับไปที่คำว่า 'แอปเปิล' และ 'เปิดตัว' เพื่อทำความเข้าใจว่า มือถือแบรนด์อะไร และเกิดอะไรขึ้นกับมัน"
+                },
+                defaultFeedback: "คลิกคำศัพท์เพื่อดูค่า Self-Attention"
+            },
+            s2: {
+                words: ["แอปเปิล", "ลูก", "นี้", "มี", "รสชาติ", "อร่อย"],
+                attentions: {
+                    0: [1.0, 0.7, 0.3, 0.1, 0.8, 0.9], // 'แอปเปิล' มองไปที่ 'รสชาติ', 'อร่อย', 'ลูก'
+                    5: [0.9, 0.4, 0.2, 0.1, 0.7, 1.0]  // 'อร่อย' มองกลับไปที่ 'แอปเปิล' และ 'รสชาติ'
+                },
+                feedbacks: {
+                    0: "<b>💡 AI คิดอย่างไร?:</b> คราวนี้พอคลิกคำว่า <b>'แอปเปิล'</b> AI ให้น้ำหนักไปที่คำว่า <b>'อร่อย' (90%)</b> และ <b>'รสชาติ' (80%)</b> บริบทเปลี่ยนไปทันที! AI เข้าใจว่านี่คือ 'ผลไม้' โดยไม่ต้องมีใครไปบอกมันล่วงหน้า",
+                    5: "<b>💡 AI คิดอย่างไร?:</b> คำว่า <b>'อร่อย'</b> กำลังขยายความอะไรอยู่? AI โยงความสัมพันธ์กลับไปหาคำว่า 'แอปเปิล' และ 'รสชาติ' ทำให้มันเข้าใจโครงสร้างของประโยค"
+                },
+                defaultFeedback: "คลิกคำศัพท์เพื่อดูค่า Self-Attention"
+            },
+            s3: {
+                words: ["แบงก์", "เดิน", "ไป", "ฝาก", "เงิน", "ที่", "แบงก์"],
+                attentions: {
+                    0: [1.0, 0.9, 0.5, 0.4, 0.2, 0.1, 0.2], // 'แบงก์' ตัวแรก คือ ชื่อคน (โยงกับ 'เดิน')
+                    6: [0.2, 0.1, 0.3, 0.8, 0.9, 0.6, 1.0]  // 'แบงก์' ตัวหลัง คือ ธนาคาร (โยงกับ 'ฝาก', 'เงิน')
+                },
+                feedbacks: {
+                    0: "<b>💡 AI คิดอย่างไร?:</b> 'แบงก์' คำแรก โยงความสัมพันธ์ไปที่คำว่า <b>'เดิน' (90%)</b> การกระทำนี้ทำให้ AI รู้ว่า แบงก์ตัวนี้คือ <b>'ชื่อคน'</b>",
+                    6: "<b>💡 AI คิดอย่างไร?:</b> 'แบงก์' คำที่สอง โยงความสัมพันธ์ไปที่คำว่า <b>'ฝาก' (80%)</b> และ <b>'เงิน' (90%)</b> AI จึงตีความคำนี้ว่าเป็น <b>'สถานที่ (ธนาคาร)'</b> <br><br>นี่คือความมหัศจรรย์ของ Transformer ที่สามารถแยกแยะคำที่เขียนเหมือนกันเป๊ะๆ ในประโยคเดียวกันได้!"
+                },
+                defaultFeedback: "ลองคลิกเปรียบเทียบคำว่า 'แบงก์' ตัวแรก กับ 'แบงก์' ตัวสุดท้ายดูสิครับ!"
+            }
+        };
+
+        let currentScenario = 's1';
+
+        function loadScenario() {
+            currentScenario = document.getElementById('scenario-dropdown').value;
+            const data = scenarios[currentScenario];
+            const container = document.getElementById('sentence-container');
+            
+            container.innerHTML = '';
+            document.getElementById('feedback-box').style.display = 'none';
+
+            data.words.forEach((word, index) => {
+                const card = document.createElement('div');
+                card.className = 'word-card';
+                card.id = `word-${index}`;
+                card.innerText = word;
+                card.onclick = () => highlightAttention(index);
+
+                // Attention Score Label
+                const weightLbl = document.createElement('div');
+                weightLbl.className = 'attention-weight';
+                weightLbl.id = `weight-${index}`;
+                weightLbl.innerText = '0%';
+                card.appendChild(weightLbl);
+
+                // Positional Encoding Tag
+                const posTag = document.createElement('div');
+                posTag.className = 'pos-tag';
+                posTag.innerText = `Pos: ${index + 1}`;
+                card.appendChild(posTag);
+
+                container.appendChild(card);
+            });
+
+            togglePosition(); // เช็คสถานะปุ่ม toggle
+            showFeedback(data.defaultFeedback);
+        }
+
+        function highlightAttention(sourceIndex) {
+            const data = scenarios[currentScenario];
+            const attentionWeights = data.attentions[sourceIndex];
+
+            // Reset all cards
+            document.querySelectorAll('.word-card').forEach(card => {
+                card.classList.remove('active');
+                card.style.backgroundColor = 'white';
+                card.querySelector('.attention-weight').style.opacity = '0';
+            });
+
+            // Set Active Card
+            const activeCard = document.getElementById(`word-${sourceIndex}`);
+            activeCard.classList.add('active');
+
+            // ถ้าไม่มีชุดข้อมูล Attention ที่เจาะจง ให้จำลองการเกลี่ยความสัมพันธ์พื้นฐาน
+            const weightsToUse = attentionWeights || generateMockAttention(data.words.length, sourceIndex);
+
+            // Highlight others based on weights
+            weightsToUse.forEach((weight, targetIdx) => {
+                if (targetIdx !== sourceIndex) {
+                    const targetCard = document.getElementById(`word-${targetIdx}`);
+                    // แปลง weight เป็นสีพื้นหลัง (ม่วงจางๆ)
+                    targetCard.style.backgroundColor = `rgba(var(--primary-rgb), ${weight * 0.4})`;
+                    
+                    // โชว์ตัวเลข %
+                    const weightLbl = document.getElementById(`weight-${targetIdx}`);
+                    weightLbl.innerText = `${Math.round(weight * 100)}%`;
+                    weightLbl.style.opacity = weight > 0 ? '1' : '0';
+                }
+            });
+
+            // Show specific feedback if available
+            if (data.feedbacks[sourceIndex]) {
+                showFeedback(data.feedbacks[sourceIndex]);
+            } else {
+                showFeedback(`AI สังเกตบริบทรอบๆ คำว่า <b>'${data.words[sourceIndex]}'</b>`);
+            }
+        }
+
+        function generateMockAttention(length, sourceIndex) {
+            let mock = new Array(length).fill(0.1);
+            mock[sourceIndex] = 1.0;
+            // ให้ความสนใจคำที่อยู่ติดกัน
+            if (sourceIndex > 0) mock[sourceIndex - 1] = 0.4;
+            if (sourceIndex < length - 1) mock[sourceIndex + 1] = 0.4;
+            return mock;
+        }
+
+        function showFeedback(htmlContent) {
+            const box = document.getElementById('feedback-box');
+            box.innerHTML = htmlContent;
+            box.style.display = 'block';
+            
+            // Re-trigger animation
+            box.style.animation = 'none';
+            box.offsetHeight; /* trigger reflow */
+            box.style.animation = null; 
+        }
+
+        function togglePosition() {
+            const isChecked = document.getElementById('toggle-pos').checked;
+            const posTags = document.querySelectorAll('.pos-tag');
+            const container = document.getElementById('sentence-container');
+            
+            posTags.forEach(tag => {
+                tag.style.display = isChecked ? 'block' : 'none';
+            });
+
+            if (isChecked) {
+                // อธิบาย Positional Encoding
+                showFeedback("📍 <b>Positional Encoding:</b> <br>เนื่องจาก Transformer อ่านคำทั้งหมดพร้อมกัน (Parallel) มันจึงไม่รู้ลำดับก่อนหลัง! วิศวกรจึงต้องแปะ <b>ป้ายบอกตำแหน่ง (Pos: 1, 2, 3...)</b> เข้าไปในข้อมูล เพื่อให้โมเดลแยกออกว่า 'หมา กัด แมว' กับ 'แมว กัด หมา' มีความหมายต่างกันครับ");
+                // เปลี่ยนขอบเป็นสีฟ้าให้ดูโดดเด่น
+                container.style.borderBottom = "3px dashed var(--secondary)";
+                container.style.paddingBottom = "20px";
+            } else {
+                container.style.borderBottom = "none";
+                container.style.paddingBottom = "0";
+            }
+        }
+
+        // Initialize First Scenario
+        loadScenario();
+    </script>
+</body>
+</html>
