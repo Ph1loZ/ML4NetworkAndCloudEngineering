@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Linear Regression Tuning - จูนพารามิเตอร์การเรียนรู้</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --secondary: #0284c7;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 25px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1100px;
+            justify-content: center;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            flex: 1;
+            min-width: 350px;
+            max-width: 400px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .param-group {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+        }
+
+        .param-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .param-value {
+            background: var(--primary);
+            color: white;
+            padding: 2px 10px;
+            border-radius: 12px;
+            font-size: 0.95rem;
+        }
+
+        .param-desc {
+            font-size: 0.85rem;
+            color: #475569;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        input[type="range"], select {
+            width: 100%;
+            cursor: pointer;
+            accent-color: var(--primary);
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+        }
+        input[type="range"] { padding: 0; border: none; }
+
+        .btn-train {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--success);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        .btn-train:hover { transform: scale(1.02); background-color: #15803d; }
+        
+        .btn-outlier {
+            width: 100%;
+            padding: 10px;
+            background-color: var(--danger);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            margin-top: -10px;
+        }
+
+        /* Plot Panel */
+        .plot-panel {
+            flex: 1.5;
+            min-width: 500px;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        canvas {
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            width: 100%;
+            height: 400px;
+        }
+
+        .feedback-box {
+            margin-top: 15px;
+            padding: 15px;
+            background: #eff6ff;
+            border-left: 4px solid var(--primary);
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+            color: #1e3a8a;
+            line-height: 1.5;
+        }
+
+        .stats-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            font-weight: bold;
+            color: #334155;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>⚙️ จูนพารามิเตอร์ Linear Regression</h1>
+    <div class="subtitle">
+        เบื้องหลังการลากเส้นของ AI คือการค่อยๆ ปรับขยับเส้นทีละนิด (Gradient Descent) <br>
+        ลองปรับแต่ง <b>ก้าวการเรียนรู้ (Learning Rate)</b> และเพิ่ม <b>การต้านทานข้อมูลขยะ (Regularization)</b> ดูสิ!
+    </div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="param-group">
+                <div class="param-header">
+                    <span>1. Learning Rate (α)</span>
+                    <span class="param-value" id="val-lr">พอดี (0.05)</span>
+                </div>
+                <div class="param-desc">
+                    <strong>ก้าวการเรียนรู้:</strong> ขยับเส้นทีละนิด หรือก้าวกระโดด?<br>
+                    ถ้าน้อยไป = เส้นขยับช้ามาก (เต่าคลาน)<br>
+                    ถ้ามากไป = เส้นจะแกว่งไปมา ควบคุมไม่ได้ (ระเบิด!)
+                </div>
+                <select id="sel-lr" onchange="resetModel()">
+                    <option value="0.001">ต่ำมาก (0.001) - ช้าเกินไป</option>
+                    <option value="0.05" selected>พอดี (0.05) - เรียนรู้ราบรื่น</option>
+                    <option value="1.5">สูงเกินไป (1.5) - เส้นกระโดดมั่ว!</option>
+                </select>
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span>2. Regularization (L2 Penalty)</span>
+                    <span class="param-value" id="val-reg">0</span>
+                </div>
+                <div class="param-desc">
+                    <strong>ความดื้อของเส้น:</strong> (Ridge Regression)<br>
+                    ยิ่งค่าสูง เส้นจะยิ่ง <b>"หนักแน่น"</b> ไม่ค่อยยอมเอียงไปหาข้อมูลขยะ (Outliers) ที่หลุดกลุ่มมา
+                </div>
+                <input type="range" id="slide-reg" min="0" max="0.5" step="0.05" value="0" oninput="updateReg()">
+            </div>
+
+            <button class="btn-outlier" id="btn-outlier" onclick="addOutlier()">🚨 จำลองเหตุการณ์: แฮกเกอร์ป่วนระบบ (Add Outlier)</button>
+
+            <button class="btn-train" id="btn-train" onclick="toggleTraining()">
+                ▶️ เริ่มให้ AI ลากเส้น (Train Model)
+            </button>
+            <button onclick="resetModel()" style="padding: 10px; background: #94a3b8; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: -10px;">
+                🔄 ล้างค่าและเริ่มใหม่
+            </button>
+        </div>
+
+        <!-- Plot Panel -->
+        <div class="plot-panel">
+            <canvas id="trainCanvas" width="600" height="400"></canvas>
+            
+            <div class="stats-row">
+                <span>รอบการเรียนรู้ (Epoch): <span id="stat-epoch" style="color: var(--primary);">0</span></span>
+                <span>ระยะคลาดเคลื่อน (Error): <span id="stat-error" style="color: var(--danger);">0.00</span></span>
+            </div>
+
+            <div class="feedback-box" id="feedback-box">
+                กดปุ่ม <b>"เริ่มให้ AI ลากเส้น"</b> เพื่อดูว่า Learning Rate ที่ตั้งไว้ ทำให้ AI หาจุดสมดุลได้ดีแค่ไหน!
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById('trainCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        // ข้อมูลหลัก (Normalized 0-1)
+        let baseData = [
+            {x: 0.1, y: 0.2}, {x: 0.2, y: 0.3}, {x: 0.3, y: 0.35},
+            {x: 0.4, y: 0.45}, {x: 0.5, y: 0.5}, {x: 0.6, y: 0.65},
+            {x: 0.7, y: 0.7}, {x: 0.8, y: 0.85}, {x: 0.9, y: 0.9}
+        ];
+        let currentData = [...baseData];
+        let hasOutlier = false;
+
+        // พารามิเตอร์โมเดล (สมการ: y = Wx + b)
+        let W = 0; // ความชันเริ่มต้น
+        let b = 0; // จุดตัดเริ่มต้น
+        let epoch = 0;
+        let isTraining = false;
+        let animationId;
+
+        // ฟังก์ชันแปลงสเกล
+        function mapX(val) { return val * (width - 40) + 20; }
+        function mapY(val) { return height - (val * (height - 40) + 20); }
+
+        function updateReg() {
+            const reg = document.getElementById('slide-reg').value;
+            document.getElementById('val-reg').innerText = reg;
+        }
+
+        function addOutlier() {
+            if (!hasOutlier) {
+                // เพิ่มข้อมูลขยะที่ผิดปกติมากๆ (โหลด 100% แต่ผู้ใช้น้อยนิด)
+                currentData.push({x: 0.15, y: 0.95});
+                hasOutlier = true;
+                document.getElementById('btn-outlier').innerText = "✅ เพิ่มข้อมูลแฮกเกอร์แล้ว";
+                document.getElementById('btn-outlier').style.backgroundColor = "#94a3b8";
+                document.getElementById('btn-outlier').disabled = true;
+                
+                // กระตุ้น Feedback
+                let fb = "🚨 <b>มีข้อมูลขยะ (Outlier) ปะปนมา!</b><br>ลองกด Train ดู จะพบว่าเส้นจะเอียงไปหาข้อมูลขยะนี้ ทำให้ทายผลคนอื่นผิดหมด <b>วิธีแก้:</b> ลองเลื่อนเพิ่มค่า Regularization ให้สูงขึ้น เพื่อบอกให้เส้น 'ดื้อ' และไม่เอียงตามข้อมูลขยะครับ";
+                document.getElementById('feedback-box').innerHTML = fb;
+                document.getElementById('feedback-box').style.backgroundColor = "#fef2f2";
+                document.getElementById('feedback-box').style.borderLeftColor = "var(--danger)";
+                document.getElementById('feedback-box').style.color = "#991b1b";
+
+                drawCanvas();
+            }
+        }
+
+        function drawCanvas() {
+            ctx.clearRect(0, 0, width, height);
+
+            // วาด Grid
+            ctx.strokeStyle = '#e2e8f0'; ctx.lineWidth = 1;
+            for(let i=0; i<=1; i+=0.1) {
+                ctx.beginPath(); ctx.moveTo(mapX(i), 0); ctx.lineTo(mapX(i), height); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, mapY(i)); ctx.lineTo(width, mapY(i)); ctx.stroke();
+            }
+
+            let totalError = 0;
+
+            // วาดเส้น Error สีแดง
+            currentData.forEach(pt => {
+                let predY = (W * pt.x) + b;
+                totalError += Math.pow(predY - pt.y, 2); // MSE (Mean Squared Error)
+
+                ctx.beginPath();
+                ctx.moveTo(mapX(pt.x), mapY(pt.y));
+                ctx.lineTo(mapX(pt.x), mapY(predY));
+                ctx.strokeStyle = 'rgba(239, 68, 68, 0.4)';
+                ctx.lineWidth = 2;
+                ctx.setLineDash([4, 4]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            });
+
+            // อัปเดต UI Stats
+            document.getElementById('stat-epoch').innerText = epoch;
+            document.getElementById('stat-error').innerText = isNaN(totalError) ? "ระเบิด (NaN)!" : (totalError / currentData.length).toFixed(4);
+
+            // วาดเส้นพยากรณ์
+            ctx.beginPath();
+            ctx.moveTo(mapX(0), mapY((W * 0) + b));
+            ctx.lineTo(mapX(1), mapY((W * 1) + b));
+            ctx.strokeStyle = 'var(--primary)';
+            ctx.lineWidth = 4;
+            ctx.stroke();
+
+            // วาดข้อมูล (จุด)
+            currentData.forEach(pt => {
+                ctx.beginPath();
+                ctx.arc(mapX(pt.x), mapY(pt.y), 7, 0, Math.PI * 2);
+                
+                // ถ้าเป็นจุด Outlier ให้เป็นสีแดง
+                if (pt.y > 0.9 && pt.x < 0.2 && hasOutlier) {
+                    ctx.fillStyle = 'var(--danger)';
+                } else {
+                    ctx.fillStyle = '#1e293b';
+                }
+                
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+        }
+
+        // หัวใจหลัก: อัลกอริทึม Gradient Descent
+        function trainStep() {
+            if (!isTraining) return;
+
+            let lr = parseFloat(document.getElementById('sel-lr').value);
+            let lambda = parseFloat(document.getElementById('slide-reg').value); // L2 Penalty (Ridge)
+
+            let gradW = 0;
+            let gradB = 0;
+            let N = currentData.length;
+
+            // คำนวณทิศทางความชัน (Gradient)
+            currentData.forEach(pt => {
+                let predY = (W * pt.x) + b;
+                let error = predY - pt.y;
+                gradW += error * pt.x;
+                gradB += error;
+            });
+
+            // ค่าเฉลี่ย + L2 Regularization Penalty (เฉพาะ W)
+            gradW = (gradW / N) + (lambda * W);
+            gradB = (gradB / N);
+
+            // อัปเดต W และ b
+            W = W - (lr * gradW);
+            b = b - (lr * gradB);
+            
+            epoch++;
+            drawCanvas();
+
+            // จัดการกรณี Exploding Gradient (ระเบิด)
+            if (Math.abs(W) > 10 || isNaN(W)) {
+                isTraining = false;
+                document.getElementById('btn-train').innerHTML = "▶️ เริ่มให้ AI ลากเส้น (Train Model)";
+                document.getElementById('btn-train').style.backgroundColor = "var(--success)";
+                
+                let fb = "💣 <b>เส้นระเบิด (Divergence)!</b><br>นี่คือผลจากการตั้งค่า Learning Rate สูงเกินไป AI ก้าวข้ามเป้าหมายไปมาจนคณิตศาสตร์พังทลาย <b>วิธีแก้:</b> ให้เปลี่ยน Learning Rate เป็นค่า 'พอดี' แล้วกดปุ่มล้างค่าเริ่มใหม่ครับ";
+                document.getElementById('feedback-box').innerHTML = fb;
+                document.getElementById('feedback-box').style.backgroundColor = "#fee2e2";
+                document.getElementById('feedback-box').style.borderLeftColor = "var(--danger)";
+                document.getElementById('feedback-box').style.color = "#991b1b";
+                return;
+            }
+
+            if (isTraining && epoch < 500) {
+                animationId = requestAnimationFrame(trainStep);
+            } else if (epoch >= 500) {
+                toggleTraining(); // หยุดอัตโนมัติเมื่อครบ 500 รอบ
+            }
+        }
+
+        function toggleTraining() {
+            isTraining = !isTraining;
+            const btn = document.getElementById('btn-train');
+            
+            if (isTraining) {
+                btn.innerHTML = "⏸️ หยุดพัก (Pause)";
+                btn.style.backgroundColor = "var(--warning)";
+                trainStep();
+            } else {
+                btn.innerHTML = "▶️ ลากเส้นต่อ (Resume)";
+                btn.style.backgroundColor = "var(--success)";
+                cancelAnimationFrame(animationId);
+            }
+        }
+
+        function resetModel() {
+            W = 0; b = 0; epoch = 0;
+            isTraining = false;
+            cancelAnimationFrame(animationId);
+            
+            currentData = [...baseData];
+            hasOutlier = false;
+            
+            document.getElementById('btn-outlier').innerText = "🚨 จำลองเหตุการณ์: แฮกเกอร์ป่วนระบบ (Add Outlier)";
+            document.getElementById('btn-outlier').style.backgroundColor = "var(--danger)";
+            document.getElementById('btn-outlier').disabled = false;
+            
+            const btn = document.getElementById('btn-train');
+            btn.innerHTML = "▶️ เริ่มให้ AI ลากเส้น (Train Model)";
+            btn.style.backgroundColor = "var(--success)";
+
+            let fb = "กดปุ่ม <b>'เริ่มให้ AI ลากเส้น'</b> เพื่อดูว่า Learning Rate ที่ตั้งไว้ ทำให้ AI หาจุดสมดุลได้ดีแค่ไหน!";
+            document.getElementById('feedback-box').innerHTML = fb;
+            document.getElementById('feedback-box').style.backgroundColor = "#eff6ff";
+            document.getElementById('feedback-box').style.borderLeftColor = "var(--primary)";
+            document.getElementById('feedback-box').style.color = "#1e3a8a";
+
+            drawCanvas();
+        }
+
+        // วาดครั้งแรก
+        drawCanvas();
+    </script>
+</body>
+</html>
