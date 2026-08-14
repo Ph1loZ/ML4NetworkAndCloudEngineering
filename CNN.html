@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CNN Interactive Game - เครื่องสแกนหาจุดเด่น</title>
+    <style>
+        :root {
+            --primary: #0ea5e9;
+            --secondary: #6366f1;
+            --success: #10b981;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+            --highlight: rgba(14, 165, 233, 0.2);
+            --filter-border: #f59e0b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 30px;
+            width: 100%;
+            max-width: 1200px;
+            justify-content: center;
+            align-items: flex-start;
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .panel-title {
+            font-weight: bold;
+            font-size: 1.2rem;
+            margin-bottom: 15px;
+            color: var(--secondary);
+            text-align: center;
+        }
+
+        /* Grids */
+        .grid-container {
+            display: grid;
+            gap: 2px;
+            background: #cbd5e1;
+            border: 2px solid #94a3b8;
+            padding: 2px;
+            position: relative;
+        }
+
+        .cell {
+            background: white;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-weight: bold;
+            font-size: 1.2rem;
+            color: #334155;
+            transition: all 0.3s;
+        }
+
+        /* 5x5 Input */
+        .grid-input { grid-template-columns: repeat(5, 50px); grid-template-rows: repeat(5, 50px); }
+        /* 3x3 Filter */
+        .grid-filter { grid-template-columns: repeat(3, 40px); grid-template-rows: repeat(3, 40px); }
+        /* 3x3 Output */
+        .grid-output { grid-template-columns: repeat(3, 60px); grid-template-rows: repeat(3, 60px); }
+
+        .cell.pixel-on { background-color: #1e293b; color: white; } /* ภาพขาวดำ (1 = ดำ, 0 = ขาว) */
+        
+        /* สี่เหลี่ยมไฮไลต์ (แว่นขยายสแกน) */
+        .scanner-box {
+            position: absolute;
+            border: 4px solid var(--filter-border);
+            width: 154px; /* 3 cells * 50px + gaps */
+            height: 154px;
+            box-sizing: border-box;
+            background: rgba(245, 158, 11, 0.2);
+            pointer-events: none;
+            transition: top 0.3s, left 0.3s;
+            z-index: 10;
+            display: none;
+        }
+
+        /* ส่วนคำนวณคณิตศาสตร์ */
+        .math-box {
+            width: 100%;
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 1.1rem;
+            min-height: 80px;
+        }
+
+        .calc-formula {
+            font-family: monospace;
+            font-size: 1.2rem;
+            color: var(--primary);
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        /* Controls */
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            width: 100%;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        button:hover { transform: scale(1.05); }
+        button:disabled { background-color: #cbd5e1 !important; cursor: not-allowed; transform: none; }
+        
+        .btn-scan { background-color: var(--primary); color: white; }
+        .btn-auto { background-color: var(--success); color: white; }
+        .btn-reset { background-color: #64748b; color: white; }
+
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background: #eff6ff;
+            border-left: 5px solid var(--primary);
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+            color: #1e3a8a;
+            line-height: 1.6;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>🔍 CNN: เกมสแกนหาจุดเด่น (Convolution)</h1>
+    <div class="subtitle">
+        AI ในระบบ CNN ไม่ได้มองภาพรวมทั้งภาพ แต่มันจะใช้ <b>"แว่นขยาย (Filter)"</b> เลื่อนสแกนภาพไปทีละช่อง<br>
+        เพื่อดูว่าพื้นที่ตรงนั้นมีลวดลาย <b>ตรงกับสิ่งที่มันกำลังตามหาหรือไม่</b> ลองกด "สแกนทีละช่อง" เพื่อดูการคำนวณครับ!
+    </div>
+
+    <div class="container">
+        
+        <!-- 1. ภาพต้นฉบับ -->
+        <div class="panel">
+            <div class="panel-title">1. ภาพต้นฉบับ (Input Image)<br><span style="font-size: 0.8rem; color: #64748b;">ภาพพิกเซล 5x5 (รูปข้าวหลามตัด)</span></div>
+            <div class="grid-container grid-input" id="grid-input">
+                <div class="scanner-box" id="scanner"></div>
+                <!-- สร้างโดย JS -->
+            </div>
+            
+            <div class="controls">
+                <button class="btn-scan" id="btn-next" onclick="nextStep()">🔍 สแกนทีละช่อง</button>
+                <button class="btn-auto" id="btn-auto" onclick="autoScan()">🚀 สแกนรวดเดียว</button>
+            </div>
+            <button class="btn-reset" onclick="resetGame()" style="margin-top: 10px; width: 100%;">🔄 เริ่มใหม่</button>
+        </div>
+
+        <!-- 2. แว่นขยาย (Filter) และ เครื่องคิดเลข -->
+        <div class="panel">
+            <div class="panel-title">2. ตัวกรอง (Filter / Kernel)<br><span style="font-size: 0.8rem; color: #64748b;">กำลังตามหา "เส้นทแยงมุมเฉียงซ้าย (/)"</span></div>
+            <div class="grid-container grid-filter" id="grid-filter" style="border-color: var(--filter-border);">
+                <!-- สร้างโดย JS -->
+            </div>
+
+            <div class="math-box">
+                <div style="color: #475569; font-size: 0.9rem;">คณิตศาสตร์การสแกน (Convolution):</div>
+                <div id="math-text">กดปุ่มสแกนเพื่อเริ่มวิเคราะห์...</div>
+                <div class="calc-formula" id="calc-formula"></div>
+            </div>
+        </div>
+
+        <!-- 3. ผลลัพธ์ -->
+        <div class="panel">
+            <div class="panel-title">3. แผนที่จุดเด่น (Feature Map)<br><span style="font-size: 0.8rem; color: #64748b;">ยิ่งตัวเลขสูง = ยิ่งเจอสิ่งที่ตามหา!</span></div>
+            <div class="grid-container grid-output" id="grid-output">
+                <!-- สร้างโดย JS -->
+            </div>
+        </div>
+
+    </div>
+
+    <div class="explanation">
+        <strong>💡 เกิดอะไรขึ้นในกระบวนการนี้?</strong><br>
+        <ul>
+            <li><b>ตัวกรอง (Filter):</b> คือแว่นขยายที่ถูกตั้งค่ามาให้จับผิดเฉพาะ "เส้นทแยงมุมเฉียงซ้าย (/)" <i>(ช่องที่มีเลข 1 เรียงทแยง)</i></li>
+            <li><b>ผลคูณ (Dot Product):</b> เมื่อสแกนเนอร์ทาบลงบนภาพ มันจะเอาตัวเลขในภาพ มาคูณกับตัวเลขในแว่นขยาย แล้วจับบวกกันทั้งหมด $Score = \sum (Image \times Filter)$</li>
+            <li><b>ผลลัพธ์ (Feature Map):</b> สังเกตช่องที่ได้คะแนน <b>"3"</b> (สีเข้มที่สุด) นั่นคือจุดที่ภาพต้นฉบับมีลวดลายเส้นทแยงมุมเฉียงซ้ายตรงกับแว่นขยายเป๊ะๆ! AI จึงรู้ได้ทันทีว่าภาพนี้มีเส้นทแยงมุมซ่อนอยู่ตรงมุมซ้ายล่าง และมุมขวาบนนั่นเอง</li>
+        </ul>
+    </div>
+
+    <script>
+        // 1. กำหนดข้อมูล (0 = ขาว, 1 = ดำ)
+        // ภาพรูปข้าวหลามตัด (Diamond)
+        const inputData = [
+            [0, 0, 1, 0, 0],
+            [0, 1, 0, 1, 0],
+            [1, 0, 0, 0, 1],
+            [0, 1, 0, 1, 0],
+            [0, 0, 1, 0, 0]
+        ];
+
+        // Filter: ตามหาเส้นทแยงมุม / (Bottom-Left to Top-Right)
+        const filterData = [
+            [0, 0, 1],
+            [0, 1, 0],
+            [1, 0, 0]
+        ];
+
+        let currentStep = 0; // 0 to 8 (สแกน 3x3 ช่อง = 9 สเต็ป)
+        let isAuto = false;
+        let outputData = Array(3).fill().map(() => Array(3).fill(null));
+
+        // 2. ฟังก์ชันวาด Grid
+        function drawGrid(containerId, data, isInput = false) {
+            const container = document.getElementById(containerId);
+            // ลบของเก่า ยกเว้น scanner
+            Array.from(container.children).forEach(child => {
+                if(child.id !== 'scanner') container.removeChild(child);
+            });
+
+            for (let r = 0; r < data.length; r++) {
+                for (let c = 0; c < data[r].length; c++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.id = `${containerId}-${r}-${c}`;
+                    
+                    let val = data[r][c];
+                    if (val !== null) {
+                        cell.innerText = val;
+                        if (val === 1 && containerId !== 'grid-output') cell.classList.add('pixel-on');
+                    }
+                    container.appendChild(cell);
+                }
+            }
+        }
+
+        // 3. ฟังก์ชันสแกนทีละสเต็ป
+        function nextStep() {
+            if (currentStep >= 9) return;
+
+            const row = Math.floor(currentStep / 3);
+            const col = currentStep % 3;
+
+            // ก. เลื่อนกรอบ Scanner
+            const scanner = document.getElementById('scanner');
+            scanner.style.display = 'block';
+            scanner.style.top = `${row * 52}px`; // 50px + 2px gap
+            scanner.style.left = `${col * 52}px`;
+
+            // ข. ทำ Convolution (คูณและบวก)
+            let sum = 0;
+            let mathString = [];
+            
+            for (let i = 0; i < 3; i++) {
+                for (let j = 0; j < 3; j++) {
+                    let imgVal = inputData[row + i][col + j];
+                    let filVal = filterData[i][j];
+                    sum += imgVal * filVal;
+                    
+                    if (filVal === 1) { // โชว์เฉพาะตัวที่ Filter ไปจับ เพื่อความสะอาดตา
+                        mathString.push(`(${imgVal}×1)`);
+                    }
+                }
+            }
+
+            // ค. แสดงผลคณิตศาสตร์
+            document.getElementById('math-text').innerHTML = `สแกนเจอจุดพิกเซลที่ตรงกับแว่นขยายกี่จุด?`;
+            document.getElementById('calc-formula').innerHTML = `${mathString.join(' + ')} = <span style="font-size:1.5rem; color:#ef4444;">${sum}</span>`;
+
+            // ง. บันทึกและระบายสี Output (Feature Map)
+            outputData[row][col] = sum;
+            const outCell = document.getElementById(`grid-output-${row}-${col}`);
+            outCell.innerText = sum;
+            
+            // เปลี่ยนสีตามความเข้ม (ถ้า 3 คือตรงเป๊ะ สีจะเข้มสุด)
+            if (sum === 0) outCell.style.backgroundColor = '#f8fafc';
+            if (sum === 1) outCell.style.backgroundColor = '#bae6fd'; // สีฟ้าอ่อน
+            if (sum === 2) outCell.style.backgroundColor = '#38bdf8';
+            if (sum === 3) {
+                outCell.style.backgroundColor = '#0284c7'; // สีฟ้าเข้ม
+                outCell.style.color = 'white';
+                outCell.style.transform = 'scale(1.1)';
+                outCell.style.zIndex = '5';
+                setTimeout(() => { outCell.style.transform = 'scale(1)'; }, 300);
+            }
+
+            currentStep++;
+
+            // ถ้าเสร็จแล้ว
+            if (currentStep === 9) {
+                document.getElementById('btn-next').disabled = true;
+                document.getElementById('btn-auto').disabled = true;
+                document.getElementById('math-text').innerHTML = `<b>🎉 สแกนเสร็จสิ้น!</b>`;
+                document.getElementById('calc-formula').innerHTML = `ได้แผนที่จุดเด่น (Feature Map) ขนาด 3x3`;
+                scanner.style.display = 'none';
+            }
+        }
+
+        // โหมดอัตโนมัติ
+        function autoScan() {
+            document.getElementById('btn-next').disabled = true;
+            document.getElementById('btn-auto').disabled = true;
+            
+            const interval = setInterval(() => {
+                if (currentStep < 9) {
+                    nextStep();
+                } else {
+                    clearInterval(interval);
+                }
+            }, 600); // ความเร็ว 0.6 วินาทีต่อช่อง
+        }
+
+        function resetGame() {
+            currentStep = 0;
+            outputData = Array(3).fill().map(() => Array(3).fill(null));
+            
+            document.getElementById('scanner').style.display = 'none';
+            document.getElementById('math-text').innerText = 'กดปุ่มสแกนเพื่อเริ่มวิเคราะห์...';
+            document.getElementById('calc-formula').innerText = '';
+            
+            document.getElementById('btn-next').disabled = false;
+            document.getElementById('btn-auto').disabled = false;
+
+            drawGrid('grid-input', inputData, true);
+            drawGrid('grid-filter', filterData);
+            drawGrid('grid-output', outputData);
+        }
+
+        // วาดครั้งแรก
+        drawGrid('grid-input', inputData, true);
+        drawGrid('grid-filter', filterData);
+        drawGrid('grid-output', outputData);
+
+    </script>
+</body>
+</html>
