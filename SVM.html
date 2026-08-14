@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SVM Interactive Game - เกมสร้างถนนแบ่งเขตแดน</title>
+    <style>
+        :root {
+            --primary: #3b82f6; /* Blue */
+            --success: #10b981; /* Green */
+            --danger: #ef4444; /* Red */
+            --support: #f59e0b; /* Yellow/Gold for Support Vectors */
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1100px;
+            justify-content: center;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            flex: 1;
+            min-width: 320px;
+            max-width: 400px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .param-group {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+        }
+
+        .param-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .score-box {
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: 2px dashed #cbd5e1;
+            background: #f8fafc;
+            transition: all 0.3s;
+        }
+
+        .score-value {
+            font-size: 2.5rem;
+            color: var(--primary);
+            display: block;
+            margin-top: 10px;
+        }
+
+        .btn-solve {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn-solve:hover { transform: scale(1.02); background-color: #2563eb; }
+
+        /* Canvas Panel */
+        .plot-panel {
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: hidden;
+            border: 2px solid #e2e8f0;
+            padding: 10px;
+        }
+
+        canvas {
+            background-image: 
+                linear-gradient(#f1f5f9 1px, transparent 1px),
+                linear-gradient(90deg, #f1f5f9 1px, transparent 1px);
+            background-size: 40px 40px;
+            border-radius: 8px;
+            cursor: crosshair;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        .legend-item { display: flex; align-items: center; gap: 8px; }
+        .legend-color { width: 14px; height: 14px; border-radius: 50%; }
+
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background: #eff6ff;
+            border-left: 4px solid var(--primary);
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+            color: #1e3a8a;
+            line-height: 1.6;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>🛣️ SVM: ภารกิจสร้างถนนแบ่งเขตแดน</h1>
+    <div class="subtitle">
+        <b>Support Vector Machine (SVM)</b> คืออัลกอริทึมที่พยายามลาก <b>"เส้นแบ่ง (Hyperplane)"</b> ให้มี <b>"ความกว้างของถนน (Margin)"</b> มากที่สุด <br>
+        ลองเลื่อนสไลเดอร์เพื่อหมุนและเลื่อนเส้นแบ่ง ให้แยกผู้ใช้ปกติ (สีเขียว) ออกจากแฮกเกอร์ (สีแดง) โดยให้ถนนกว้างที่สุดดูสิ!
+    </div>
+
+    <div class="container">
+        
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="param-group">
+                <div class="param-header">
+                    <span>🔄 หมุนเส้น (Angle)</span>
+                    <span id="val-angle">45°</span>
+                </div>
+                <input type="range" id="slide-angle" min="0" max="180" value="45" oninput="updatePlot()">
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span>↔️ เลื่อนเส้น (Offset)</span>
+                    <span id="val-offset">0</span>
+                </div>
+                <input type="range" id="slide-offset" min="-150" max="150" value="0" oninput="updatePlot()">
+            </div>
+
+            <div class="score-box" id="score-box">
+                ความกว้างถนน (Margin)
+                <span class="score-value" id="val-margin">0</span>
+                <div id="status-text" style="font-size: 0.9rem; margin-top: 10px; color: #64748b;">ปรับเส้นให้แบ่งสีเขียวและแดงให้ขาดจากกัน</div>
+            </div>
+
+            <button class="btn-solve" onclick="autoSolve()">🤖 ให้ AI เฉลย (Auto SVM)</button>
+
+            <div class="explanation">
+                <strong>💡 สังเกตจุดวงแหวนสีทองไหม?</strong><br>
+                จุดที่อยู่ติดริมถนนที่สุด เราเรียกว่า <b>"Support Vectors"</b> <br>
+                ในโลกของ SVM ข้อมูลนับแสนตัวไม่สำคัญเท่าจุดเหล่านี้ เพราะถ้าเอา Support Vectors ออก ถนนจะเปลี่ยนรูปร่างทันที!
+            </div>
+        </div>
+
+        <!-- Plot Panel -->
+        <div class="plot-panel">
+            <canvas id="svmCanvas" width="500" height="400"></canvas>
+            
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--success);"></div> ปกติ (Normal)
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--danger);"></div> โจมตี (Attack)
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="border: 3px solid var(--support); background: transparent;"></div> <b>Support Vectors</b>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById('svmCanvas');
+        const ctx = canvas.getContext('2d');
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+
+        // ข้อมูลจำลอง (Data Points) - ออกแบบให้มีเส้นแบ่งที่สวยงาม (Optimal Margin)
+        const greens = [
+            {x: 100, y: 300}, {x: 150, y: 250}, {x: 80, y: 200}, 
+            {x: 200, y: 350}, {x: 220, y: 280}
+        ];
+        
+        const reds = [
+            {x: 350, y: 100}, {x: 400, y: 150}, {x: 300, y: 80}, 
+            {x: 420, y: 200}, {x: 280, y: 160}
+        ];
+
+        // Optimal values (คำนวณไว้ล่วงหน้าสำหรับเฉลย)
+        const optimalAngle = 45;
+        const optimalOffset = -15;
+
+        function drawPoint(x, y, color, isSupport = false) {
+            ctx.beginPath();
+            ctx.arc(x, y, 6, 0, Math.PI * 2);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 1.5;
+            ctx.stroke();
+
+            // ไฮไลต์ Support Vector (วงแหวนสีทอง)
+            if (isSupport) {
+                ctx.beginPath();
+                ctx.arc(x, y, 12, 0, Math.PI * 2);
+                ctx.strokeStyle = '#f59e0b'; // Gold
+                ctx.lineWidth = 3;
+                ctx.stroke();
+            }
+        }
+
+        function drawLine(p_center, v_dir, color, dash = [], width = 2) {
+            ctx.beginPath();
+            // วาดเส้นยาวๆ ทะลุจอ
+            ctx.moveTo(p_center.x + v_dir.x * 1000, p_center.y + v_dir.y * 1000);
+            ctx.lineTo(p_center.x - v_dir.x * 1000, p_center.y - v_dir.y * 1000);
+            ctx.strokeStyle = color;
+            ctx.lineWidth = width;
+            ctx.setLineDash(dash);
+            ctx.stroke();
+            ctx.setLineDash([]); // reset
+        }
+
+        function updatePlot() {
+            const angleDeg = parseInt(document.getElementById('slide-angle').value);
+            const offset = parseInt(document.getElementById('slide-offset').value);
+            
+            document.getElementById('val-angle').innerText = angleDeg + '°';
+            document.getElementById('val-offset').innerText = offset;
+
+            // เคลียร์จอ
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // คณิตศาสตร์ของเส้น (Line Math)
+            const angleRad = angleDeg * Math.PI / 180;
+            // Normal vector (เวกเตอร์ตั้งฉากกับเส้น)
+            const nx = Math.cos(angleRad);
+            const ny = Math.sin(angleRad);
+            // Direction vector (เวกเตอร์ทิศทางของเส้น)
+            const dx = -Math.sin(angleRad);
+            const dy = Math.cos(angleRad);
+
+            // จุดศูนย์กลางของเส้น (ขยับด้วย offset ตามแกน normal)
+            const px = cx + nx * offset;
+            const py = cy + ny * offset;
+
+            // ฟังก์ชันหาระยะทางจากจุดไปยังเส้นตรงกลาง
+            function getDistance(pt) {
+                // โปรเจคชันบนเวกเตอร์ตั้งฉาก
+                return (pt.x - px) * nx + (pt.y - py) * ny;
+            }
+
+            let valid = true;
+            let minGreenDist = Infinity;
+            let minRedDist = Infinity;
+            
+            let greenDists = [];
+            let redDists = [];
+
+            // ตรวจสอบฝั่งสีเขียว (สมมติว่าต้องอยู่ฝั่งที่ Distance < 0)
+            greens.forEach(pt => {
+                let d = getDistance(pt);
+                greenDists.push(d);
+                if (d > 0) valid = false; // หลุดข้ามเส้น
+                minGreenDist = Math.min(minGreenDist, Math.abs(d));
+            });
+
+            // ตรวจสอบฝั่งสีแดง (สมมติว่าต้องอยู่ฝั่งที่ Distance > 0)
+            reds.forEach(pt => {
+                let d = getDistance(pt);
+                redDists.push(d);
+                if (d < 0) valid = false; // หลุดข้ามเส้น
+                minRedDist = Math.min(minRedDist, Math.abs(d));
+            });
+
+            // ถ้าแบ่งไม่ขาด (สีปนกัน) ให้สลับทิศทางเงื่อนไข (บางที user หมุนกลับด้าน)
+            if (!valid) {
+                valid = true;
+                minGreenDist = Infinity;
+                minRedDist = Infinity;
+                greens.forEach((pt, i) => {
+                    if (greenDists[i] < 0) valid = false;
+                    minGreenDist = Math.min(minGreenDist, Math.abs(greenDists[i]));
+                });
+                reds.forEach((pt, i) => {
+                    if (redDists[i] > 0) valid = false;
+                    minRedDist = Math.min(minRedDist, Math.abs(redDists[i]));
+                });
+            }
+
+            let margin = 0;
+            let isOptimal = false;
+            const scoreBox = document.getElementById('score-box');
+            const statusText = document.getElementById('status-text');
+
+            if (valid) {
+                // ความกว้างถนน คือระยะที่น้อยที่สุดไปยังจุดที่ใกล้ที่สุด
+                margin = Math.min(minGreenDist, minRedDist);
+                
+                // ถือว่าเป็น Support Vector ถ้าอยู่ใกล้ริมถนนมาก (บวกลบ 2 pixels)
+                const tolerance = 2;
+
+                // วาดถนน (Margin Lines)
+                // ริมถนนฝั่งนึง
+                const p_m1 = { x: px + nx * margin, y: py + ny * margin };
+                drawLine(p_m1, {x: dx, y: dy}, '#cbd5e1', [10, 10]);
+                // ริมถนนอีกฝั่งนึง
+                const p_m2 = { x: px - nx * margin, y: py - ny * margin };
+                drawLine(p_m2, {x: dx, y: dy}, '#cbd5e1', [10, 10]);
+
+                // พื้นที่ถนน (ทาสีจางๆ)
+                ctx.save();
+                ctx.translate(px, py);
+                ctx.rotate(angleRad);
+                ctx.fillStyle = 'rgba(59, 130, 246, 0.1)'; // สีฟ้าจางๆ
+                ctx.fillRect(-1000, -margin, 2000, margin * 2);
+                ctx.restore();
+
+                // วาดจุด (พร้อมไฮไลต์ Support Vectors)
+                greens.forEach((pt, i) => {
+                    let isSupport = Math.abs(Math.abs(greenDists[i]) - margin) <= tolerance;
+                    drawPoint(pt.x, pt.y, '#10b981', isSupport);
+                });
+                reds.forEach((pt, i) => {
+                    let isSupport = Math.abs(Math.abs(redDists[i]) - margin) <= tolerance;
+                    drawPoint(pt.x, pt.y, '#ef4444', isSupport);
+                });
+
+                // Update UI
+                document.getElementById('val-margin').innerText = Math.round(margin * 2); // ความกว้างรวม
+                
+                if (Math.round(margin * 2) >= 81 && angleDeg === optimalAngle) { // ค่าเฉลย
+                    scoreBox.style.borderColor = 'var(--success)';
+                    scoreBox.style.backgroundColor = '#f0fdf4';
+                    statusText.innerHTML = "🏆 <b>ยอดเยี่ยม!</b> นี่คือถนนที่กว้างที่สุดที่เป็นไปได้ (Optimal Hyperplane)";
+                    statusText.style.color = 'var(--success)';
+                } else {
+                    scoreBox.style.borderColor = 'var(--primary)';
+                    scoreBox.style.backgroundColor = '#eff6ff';
+                    statusText.innerText = "ดีมาก! ลองปรับอีกนิดเพื่อให้ถนนกว้างขึ้นได้ไหม?";
+                    statusText.style.color = 'var(--primary)';
+                }
+
+            } else {
+                // แบ่งไม่ขาด (Invalid)
+                greens.forEach(pt => drawPoint(pt.x, pt.y, '#10b981'));
+                reds.forEach(pt => drawPoint(pt.x, pt.y, '#ef4444'));
+
+                document.getElementById('val-margin').innerText = "0";
+                scoreBox.style.borderColor = 'var(--danger)';
+                scoreBox.style.backgroundColor = '#fef2f2';
+                statusText.innerHTML = "🚨 <b>พังทลาย!</b> มีข้อมูลปะปนเข้ามาในถนน ขยับเส้นใหม่ด่วน!";
+                statusText.style.color = 'var(--danger)';
+            }
+
+            // วาดเส้นแบ่งหลัก (Hyperplane) ทับบนสุด
+            drawLine({x: px, y: py}, {x: dx, y: dy}, 'var(--primary)', [], 3);
+        }
+
+        // ฟังก์ชันเมื่อกดปุ่ม "ให้ AI เฉลย"
+        function autoSolve() {
+            const slideAngle = document.getElementById('slide-angle');
+            const slideOffset = document.getElementById('slide-offset');
+            
+            // Animation วิ่งไปหาจุดที่ถูกต้อง
+            let currentAngle = parseInt(slideAngle.value);
+            let currentOffset = parseInt(slideOffset.value);
+            
+            const animate = setInterval(() => {
+                let reachedAngle = false;
+                let reachedOffset = false;
+
+                if (currentAngle < optimalAngle) currentAngle++;
+                else if (currentAngle > optimalAngle) currentAngle--;
+                else reachedAngle = true;
+
+                if (currentOffset < optimalOffset) currentOffset++;
+                else if (currentOffset > optimalOffset) currentOffset--;
+                else reachedOffset = true;
+
+                slideAngle.value = currentAngle;
+                slideOffset.value = currentOffset;
+                updatePlot();
+
+                if (reachedAngle && reachedOffset) {
+                    clearInterval(animate);
+                }
+            }, 15);
+        }
+
+        // วาดครั้งแรก
+        updatePlot();
+    </script>
+</body>
+</html>
