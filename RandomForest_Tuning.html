@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Forest Tuning - กิจกรรมสร้างคณะกรรมการ AI</title>
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --primary-light: #ddd6fe;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 800px;
+            line-height: 1.6;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            flex: 1;
+            min-width: 350px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .param-group {
+            margin-bottom: 25px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .param-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+        .param-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .param-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--primary);
+        }
+
+        .param-value {
+            background: var(--primary);
+            color: white;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.95rem;
+            font-weight: bold;
+        }
+
+        .param-desc {
+            font-size: 0.95rem;
+            color: #475569;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        /* Visualization Panel */
+        .visualization-panel {
+            flex: 2;
+            min-width: 600px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .action-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+
+        .btn-predict {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s;
+            box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
+        }
+        .btn-predict:hover { transform: scale(1.05); }
+
+        .result-bar {
+            flex: 1;
+            margin-left: 20px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+        }
+
+        .vote-summary {
+            flex: 1;
+            height: 24px;
+            background: #e2e8f0;
+            border-radius: 12px;
+            overflow: hidden;
+            display: flex;
+        }
+
+        .vote-green { background: var(--success); width: 0%; transition: width 0.5s ease; }
+        .vote-red { background: var(--danger); width: 0%; transition: width 0.5s ease; }
+
+        .forest-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            justify-content: center;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .tree-card {
+            width: 70px;
+            height: 80px;
+            background: white;
+            border: 2px solid #cbd5e1;
+            border-radius: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .tree-card.normal { border-color: var(--success); background: #f0fdf4; transform: scale(1.05); }
+        .tree-card.attack { border-color: var(--danger); background: #fef2f2; transform: scale(1.05); }
+
+        .tree-icon { font-size: 2rem; margin-bottom: 5px; }
+        .tree-detail { font-size: 0.7rem; color: #64748b; font-weight: bold; text-align: center; line-height: 1.1; }
+        
+        .tree-vote-badge {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            color: white;
+        }
+        .tree-card.normal .tree-vote-badge { background: var(--success); display: flex; content: "✔"; }
+        .tree-card.attack .tree-vote-badge { background: var(--danger); display: flex; content: "✖"; }
+
+        .stats-box {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 2px dashed #e2e8f0;
+            font-size: 0.95rem;
+            color: #475569;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🌲 Random Forest: พลังแห่งเสียงข้างมาก (Wisdom of the Crowd)</h1>
+    <div class="subtitle">
+        ลองปรับแต่ง "คณะกรรมการ (Random Forest)" ด้วยตัวเอง!<br>
+        เรียนรู้ว่าจำนวนต้นไม้, ความลึก และการสุ่มข้อมูล มีผลต่อความแม่นยำในการตรวจจับ Network Traffic อย่างไร
+    </div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h2>⚙️ จูนพารามิเตอร์ (Tuning)</h2>
+            
+            <div class="param-group">
+                <div class="param-header">
+                    <span class="param-name">n_estimators</span>
+                    <span class="param-value" id="val-estimators">20</span>
+                </div>
+                <div class="param-desc">
+                    <strong>จำนวนต้นไม้ (กรรมการ):</strong> ยิ่งมีกรรมการเยอะ ผลโหวตยิ่งแม่นยำและนิ่งขึ้น แต่มันก็ใช้เวลาประมวลผลนานขึ้น (กิน CPU/RAM)
+                </div>
+                <input type="range" id="slider-estimators" min="1" max="100" value="20" oninput="updateForest()">
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span class="param-name">max_depth</span>
+                    <span class="param-value" id="val-depth">5</span>
+                </div>
+                <div class="param-desc">
+                    <strong>ความลึกของแต่ละต้น:</strong> ระดับความซับซ้อนที่กรรมการแต่ละคนคิดได้ <br>
+                    <small>📌 ถ้าน้อยไป: กรรมการคิดตื้นๆ (Underfitting)<br>📌 ถ้ามากไป: กรรมการจำเก่งเกินไปจนเอนเอียง (Overfitting)</small>
+                </div>
+                <input type="range" id="slider-depth" min="1" max="20" value="5" oninput="updateForest()">
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span class="param-name">max_features</span>
+                    <span class="param-value" id="val-features">50%</span>
+                </div>
+                <div class="param-desc">
+                    <strong>เปอร์เซ็นต์เบาะแสที่ใช้ (%):</strong> กรรมการแต่ละคนไม่ควรเห็นข้อมูลทุกอย่างเหมือนกัน! การสุ่มเบาะแสให้ดูต่างกัน (เช่น ดูแค่ Port, อีกคนดูแค่ IP) ทำให้ได้มุมมองที่หลากหลาย (Diversity)
+                </div>
+                <input type="range" id="slider-features" min="10" max="100" value="50" step="10" oninput="updateForest()">
+            </div>
+        </div>
+
+        <!-- Visualization Panel -->
+        <div class="visualization-panel">
+            <div class="action-bar">
+                <button class="btn-predict" onclick="simulatePrediction()">🎯 ปล่อย Traffic เข้ามาทดสอบ</button>
+                <div class="result-bar">
+                    <span id="final-result-text" style="color: #64748b;">รอรับข้อมูล...</span>
+                    <div class="vote-summary">
+                        <div class="vote-green" id="bar-green"></div>
+                        <div class="vote-red" id="bar-red"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="forest-container" id="forest">
+                <!-- ต้นไม้จะถูก Gen ตรงนี้ -->
+            </div>
+
+            <div class="stats-box">
+                <span id="stat-trees">จำนวนต้นไม้: 20 ต้น</span>
+                <span id="stat-diversity">ความแตกต่างของแต่ละต้น: ปานกลาง</span>
+                <span id="stat-complexity">ความซับซ้อน: ปานกลาง</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function updateForest() {
+            const n_estimators = parseInt(document.getElementById('slider-estimators').value);
+            const max_depth = parseInt(document.getElementById('slider-depth').value);
+            const max_features = parseInt(document.getElementById('slider-features').value);
+
+            // อัปเดต Text
+            document.getElementById('val-estimators').innerText = n_estimators;
+            document.getElementById('val-depth').innerText = max_depth;
+            document.getElementById('val-features').innerText = max_features + '%';
+
+            // อัปเดต Stats Box
+            document.getElementById('stat-trees').innerText = `จำนวนต้นไม้: ${n_estimators} ต้น`;
+            document.getElementById('stat-complexity').innerText = `ความลึก/ความจำ: ${max_depth} ชั้น`;
+            document.getElementById('stat-diversity').innerText = `ความหลากหลายมุมมอง: ${100 - max_features}%`;
+
+            // ล้างผลโหวตเก่า
+            resetVotes();
+
+            // วาดป่า (Forest)
+            const forestDiv = document.getElementById('forest');
+            forestDiv.innerHTML = ''; // Clear old
+
+            for (let i = 0; i < n_estimators; i++) {
+                const card = document.createElement('div');
+                card.className = 'tree-card';
+                card.id = `tree-${i}`;
+                
+                // คำนวณความหนาแน่นของกิ่งก้าน (จำลองภาพ)
+                let treeEmoji = '🌲';
+                if (max_depth < 3) treeEmoji = '🌱';
+                else if (max_depth > 12) treeEmoji = '🌳';
+
+                card.innerHTML = `
+                    <div class="tree-icon">${treeEmoji}</div>
+                    <div class="tree-detail">Tree #${i+1}<br>D:${max_depth} F:${max_features}%</div>
+                    <div class="tree-vote-badge"></div>
+                `;
+                forestDiv.appendChild(card);
+            }
+        }
+
+        function resetVotes() {
+            document.getElementById('bar-green').style.width = '0%';
+            document.getElementById('bar-red').style.width = '0%';
+            document.getElementById('final-result-text').innerText = 'กำลังรอวิเคราะห์...';
+            document.getElementById('final-result-text').style.color = '#64748b';
+            
+            const trees = document.querySelectorAll('.tree-card');
+            trees.forEach(tree => {
+                tree.classList.remove('normal', 'attack');
+                tree.querySelector('.tree-vote-badge').innerText = '';
+            });
+        }
+
+        function simulatePrediction() {
+            resetVotes();
+            
+            const n_estimators = parseInt(document.getElementById('slider-estimators').value);
+            const max_depth = parseInt(document.getElementById('slider-depth').value);
+            const max_features = parseInt(document.getElementById('slider-features').value);
+
+            // สุ่ม True Label ลับๆ (สมมติว่ารอบนี้เป็น Traffic ปกติ)
+            const isActuallyNormal = Math.random() > 0.4; 
+            
+            let normalVotes = 0;
+            let attackVotes = 0;
+
+            const trees = document.querySelectorAll('.tree-card');
+            
+            // ให้ต้นไม้แต่ละต้นทะยอยโหวต (สร้าง Animation Delay เล็กน้อย)
+            trees.forEach((tree, index) => {
+                setTimeout(() => {
+                    // Logic จำลองการโหวต
+                    // ถ้า features น้อย กรรมการมีโอกาสทายมั่วสูงขึ้น (แตกแถว)
+                    let voteNormalProbability = isActuallyNormal ? 0.8 : 0.2;
+                    
+                    // เพิ่ม Noise ตาม Max Features (ถ้า % ยิ่งต่ำ แปลว่าเห็นข้อมูลไม่ครบ โอกาสโหวตพลาดสูง)
+                    const noise = (100 - max_features) / 100 * 0.3; // 0 to 0.27
+                    voteNormalProbability += (Math.random() - 0.5) * noise;
+                    
+                    // ปรับแต่งตาม Depth (ถ้า depth ต่ำไป อาจจะ underfitting ทายผิด)
+                    if (max_depth < 3) {
+                        voteNormalProbability = 0.5; // เดาล้วนๆ เพราะตื้นไป
+                    }
+
+                    const votesNormal = Math.random() < voteNormalProbability;
+
+                    if (votesNormal) {
+                        tree.classList.add('normal');
+                        tree.querySelector('.tree-vote-badge').innerText = '✔';
+                        normalVotes++;
+                    } else {
+                        tree.classList.add('attack');
+                        tree.querySelector('.tree-vote-badge').innerText = '✖';
+                        attackVotes++;
+                    }
+
+                    // อัปเดต Progress Bar แบบ Real-time
+                    const totalVotesSoFar = normalVotes + attackVotes;
+                    const greenPct = (normalVotes / n_estimators) * 100;
+                    const redPct = (attackVotes / n_estimators) * 100;
+
+                    document.getElementById('bar-green').style.width = `${greenPct}%`;
+                    document.getElementById('bar-red').style.width = `${redPct}%`;
+
+                    // เมื่อโหวตครบทุกต้น
+                    if (totalVotesSoFar === n_estimators) {
+                        showFinalResult(normalVotes, attackVotes);
+                    }
+                }, index * (500 / n_estimators)); // ยิ่งต้นไม้เยอะ ยิ่งแสดงผลเร็วขึ้นให้จบใน 0.5 วิ
+            });
+        }
+
+        function showFinalResult(normalVotes, attackVotes) {
+            const resultText = document.getElementById('final-result-text');
+            if (normalVotes > attackVotes) {
+                resultText.innerHTML = `✅ ผลโหวต: <b>ปกติ</b> (${normalVotes} เสียง)`;
+                resultText.style.color = 'var(--success)';
+            } else if (attackVotes > normalVotes) {
+                resultText.innerHTML = `🚨 ผลโหวต: <b>โจมตี (DDoS)</b> (${attackVotes} เสียง)`;
+                resultText.style.color = 'var(--danger)';
+            } else {
+                resultText.innerHTML = `⚠️ ผลโหวต: <b>เสมอ</b> (สุ่มเลือก)`;
+                resultText.style.color = '#f59e0b';
+            }
+        }
+
+        // Initialize
+        updateForest();
+    </script>
+</body>
+</html>
