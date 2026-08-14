@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stacking Tuning - บริหารทีม AI ขั้นเทพ</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --secondary: #6366f1;
+            --train-color: #3b82f6;
+            --val-color: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #64748b;
+            margin-bottom: 30px;
+            text-align: center;
+            max-width: 800px;
+            line-height: 1.6;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            flex: 1;
+            min-width: 400px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .param-group {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px dashed #cbd5e1;
+        }
+        .param-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+        .param-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--primary);
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .param-desc {
+            font-size: 0.9rem;
+            color: #475569;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        select, input[type="range"] {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            font-size: 1rem;
+            outline: none;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        /* Toggle Switch */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider-toggle {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: #cbd5e1;
+            transition: .4s;
+            border-radius: 24px;
+        }
+        .slider-toggle:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider-toggle { background-color: var(--primary); }
+        input:checked + .slider-toggle:before { transform: translateX(26px); }
+
+        /* Visualization Panel */
+        .visualization-panel {
+            flex: 1.2;
+            min-width: 500px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chart-container {
+            margin-top: 20px;
+            padding: 20px;
+            background: #f8fafc;
+            border-radius: 12px;
+            border: 1px solid #e2e8f0;
+        }
+
+        .bar-group { margin-bottom: 25px; }
+
+        .bar-label {
+            font-weight: bold;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .bar-track {
+            width: 100%;
+            height: 35px;
+            background: #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .bar-fill {
+            height: 100%;
+            width: 0%;
+            transition: width 0.6s ease-out;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 15px;
+            color: white;
+            font-weight: bold;
+            box-sizing: border-box;
+        }
+        .fill-train { background-color: var(--train-color); }
+        .fill-val { background-color: var(--val-color); }
+
+        .feedback-box {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 1rem;
+            line-height: 1.5;
+            transition: all 0.3s;
+            border-left: 5px solid transparent;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>🥞 ปรับจูนพารามิเตอร์ Stacking</h1>
+    <div class="subtitle">
+        ทดลองจัดทีม Base Models (ลูกน้อง) และเลือก Final Estimator (ผู้จัดการ) <br>
+        เป้าหมายคือการทำคะแนน <b>Validation (ตอนสอบจริง)</b> ให้สูงที่สุด โดยไม่เกิดอาการท่องจำข้อสอบ (Overfitting)
+    </div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h2>⚙️ ตัวแปร (Hyperparameters)</h2>
+            
+            <div class="param-group">
+                <div class="param-header">👥 1. estimators (Base Models)</div>
+                <div class="param-desc">
+                    <strong>เลือกลูกน้อง (Level-0):</strong> กฎเหล็กคือลูกน้องต้องมี <b>"ความหลากหลาย (Diversity)"</b> ยิ่งใช้โมเดลที่คิดคนละแบบมารวมกัน ผู้จัดการยิ่งได้มุมมองที่กว้างขึ้น
+                </div>
+                <select id="sel-estimators" onchange="simulateStacking()">
+                    <option value="low_div">ทีม A: Decision Tree + Random Forest (คิดเหมือนกันเกินไป)</option>
+                    <option value="mid_div" selected>ทีม B: Random Forest + KNN (พอใช้ได้)</option>
+                    <option value="high_div">ทีม C: Random Forest + SVM + Neural Network (หลากหลายขั้นสุด!)</option>
+                </select>
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">🤵‍♀️ 2. final_estimator (Meta-Model)</div>
+                <div class="param-desc">
+                    <strong>เลือกสไตล์ผู้จัดการ (Level-1):</strong> โมเดลที่จะเป็นคนฟันธงสุดท้าย มักนิยมใช้โมเดลที่เรียบง่ายเพื่อลดการเกิด Overfit (จำเจ)
+                </div>
+                <select id="sel-boss" onchange="simulateStacking()">
+                    <option value="logreg" selected>Logistic Regression (เรียบง่าย สรุปผลตรงไปตรงมา - แนะนำ!)</option>
+                    <option value="rf">Random Forest (ซับซ้อนปานกลาง)</option>
+                    <option value="xgb">XGBoost (ซับซ้อนมาก ระวังพัง!)</option>
+                </select>
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span>🔁 3. cv (Cross-Validation Folds)</span>
+                    <span id="val-cv" style="margin-left:auto; color:var(--primary); font-weight:bold;">5</span>
+                </div>
+                <div class="param-desc">
+                    <strong>ความเข้มงวดในการประเมินผลงาน:</strong> จำนวนรอบที่สลับข้อมูลเพื่อทดสอบลูกน้อง ยิ่งแบ่งเยอะ ผู้จัดการยิ่งมั่นใจว่าลูกน้องไม่ได้ฟลุค (ค่ามาตรฐานคือ 5)
+                </div>
+                <input type="range" id="slider-cv" min="2" max="10" step="1" value="5" oninput="simulateStacking()">
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">🔍 4. passthrough</div>
+                <div class="param-desc">
+                    <strong>ผู้จัดการต้องดู "ข้อมูลดิบ" ด้วยไหม?:</strong> <br>
+                    - ถ้า <b>ปิด</b>: ผู้จัดการดูแค่ "กระดาษคำตอบ" ของลูกน้อง<br>
+                    - ถ้า <b>เปิด</b>: ผู้จัดการจะเอา "ข้อมูลดิบ" มาดูประกอบด้วย (อาจจะช่วยให้ดีขึ้น หรืออาจจะทำให้ผู้จัดการสับสนจน Overfit ก็ได้)
+                </div>
+                <div class="toggle-container">
+                    <label class="switch">
+                        <input type="checkbox" id="toggle-pass" onchange="simulateStacking()">
+                        <span class="slider-toggle"></span>
+                    </label>
+                    <span id="pass-status" style="font-weight: bold; color: #64748b;">ปิด (False)</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Visualization Panel -->
+        <div class="visualization-panel">
+            <h2>📊 สรุปผลการประเมินทีม (Performance)</h2>
+            
+            <div class="chart-container">
+                <div class="bar-group">
+                    <div class="bar-label">
+                        <span style="color: var(--train-color);">📘 ความแม่นยำตอนซ้อม (Training Accuracy)</span>
+                        <span id="text-train">0%</span>
+                    </div>
+                    <div class="bar-track">
+                        <div class="bar-fill fill-train" id="bar-train"></div>
+                    </div>
+                </div>
+
+                <div class="bar-group">
+                    <div class="bar-label">
+                        <span style="color: var(--val-color);">📗 ความแม่นยำตอนสอบจริง (Validation Accuracy)</span>
+                        <span id="text-val">0%</span>
+                    </div>
+                    <div class="bar-track">
+                        <div class="bar-fill fill-val" id="bar-val"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="feedback-box" id="feedback-box">
+                กำลังวิเคราะห์ทีม...
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function simulateStacking() {
+            // Get values
+            const estimators = document.getElementById('sel-estimators').value;
+            const boss = document.getElementById('sel-boss').value;
+            const cv = parseInt(document.getElementById('slider-cv').value);
+            const passthrough = document.getElementById('toggle-pass').checked;
+
+            // Update UI
+            document.getElementById('val-cv').innerText = cv;
+            document.getElementById('pass-status').innerText = passthrough ? "เปิด (True)" : "ปิด (False)";
+            document.getElementById('pass-status').style.color = passthrough ? "var(--primary)" : "#64748b";
+
+            // Pseudo-Simulation Logic
+            let trainAcc = 75.0;
+            let valAcc = 70.0;
+            let feedback = [];
+            let statusColor = "";
+            let borderColor = "";
+
+            // 1. Evaluate Diversity (estimators)
+            if (estimators === 'low_div') {
+                trainAcc += 5; valAcc += 2;
+                feedback.push("⚠️ <b>ลูกน้องคิดเหมือนกันเกินไป:</b> ใช้แต่ตระกูล Tree เหมือนกัน ทำให้เวลามีปัญหา ก็จะตอบผิดเหมือนกันหมด (ขาด Diversity)");
+            } else if (estimators === 'mid_div') {
+                trainAcc += 8; valAcc += 8;
+            } else if (estimators === 'high_div') {
+                trainAcc += 12; valAcc += 15;
+                feedback.push("🌟 <b>ความหลากหลายเยี่ยมยอด:</b> มีทั้งลูกน้องสายกฎเกณฑ์, สายสถิติ และสาย Deep Learning ทำให้ทีมช่วยกันอุดช่องโหว่ได้ดีมาก");
+            }
+
+            // 2. Evaluate Meta-Model (boss)
+            if (boss === 'logreg') {
+                valAcc += 3;
+                feedback.push("✅ <b>ผู้จัดการทำหน้าที่ดี:</b> Logistic Regression เป็นผู้จัดการที่เรียบง่าย ไม่จู้จี้เกินไป ทำให้รวบรวมคำตอบลูกน้องได้เสถียรที่สุด");
+            } else if (boss === 'rf') {
+                trainAcc += 6; valAcc -= 1;
+            } else if (boss === 'xgb') {
+                trainAcc += 10; valAcc -= 5;
+                feedback.push("🚨 <b>ผู้จัดการซับซ้อนเกินไป:</b> การเอา XGBoost มาเป็นผู้จัดการ มักจะทำให้เกิด Overfitting อย่างรุนแรง (ผู้จัดการคิดลึกเกินไปจนพัง)");
+            }
+
+            // 3. Evaluate CV
+            if (cv < 3) {
+                valAcc -= 3;
+                feedback.push("⚠️ <b>ประเมินผลหละหลวมไป (CV ต่ำ):</b> ทำให้ผู้จัดการอาจไปหลงเชื่อลูกน้องที่แค่ 'เดาฟลุคถูก' (Data Leakage)");
+            } else if (cv >= 5) {
+                valAcc += 2;
+            }
+
+            // 4. Evaluate Passthrough
+            if (passthrough) {
+                trainAcc += 5;
+                if (boss === 'xgb' || boss === 'rf') {
+                    valAcc -= 8; // Deadly combo: Complex Boss + Raw Data = Massive Overfit
+                    feedback.push("❌ <b>ความหายนะ (Overfit):</b> ให้ผู้จัดการที่คิดลึก (XGBoost) มานั่งดูข้อมูลดิบ (Passthrough) อีก โมเดลเลยจำคำตอบทั้งหมด สอบจริงคะแนนร่วงกราว!");
+                } else if (estimators === 'low_div' && boss === 'logreg') {
+                    valAcc += 4;
+                    feedback.push("💡 <b>Passthrough ช่วยกู้ชีพ:</b> เนื่องจากลูกน้องไม่ค่อยเก่ง การส่งข้อมูลดิบให้ผู้จัดการดูด้วย จึงช่วยให้คะแนนดีขึ้นนิดหน่อย");
+                } else {
+                    valAcc -= 1;
+                }
+            }
+
+            // Cap the values
+            if (trainAcc > 99.8) trainAcc = 99.8;
+            if (valAcc > 94.5) valAcc = 94.5;
+            if (valAcc < 50.0) valAcc = 50.0;
+
+            // Update Bars
+            document.getElementById('bar-train').style.width = trainAcc + '%';
+            document.getElementById('text-train').innerText = trainAcc.toFixed(1) + '%';
+            
+            document.getElementById('bar-val').style.width = valAcc + '%';
+            document.getElementById('text-val').innerText = valAcc.toFixed(1) + '%';
+
+            // Overall Status formatting
+            const gap = trainAcc - valAcc;
+            const feedbackBox = document.getElementById('feedback-box');
+            
+            if (gap > 12) {
+                statusColor = "#fee2e2"; // Red bg
+                borderColor = "var(--danger)";
+                feedback.unshift("<h4 style='color:var(--danger); margin:0 0 10px 0;'>🚨 สถานะ: Overfitting รุนแรง! (สอบจริงตก)</h4>");
+            } else if (valAcc > 88) {
+                statusColor = "#dcfce7"; // Green bg
+                borderColor = "var(--success)";
+                feedback.unshift("<h4 style='color:var(--val-color); margin:0 0 10px 0;'>🏆 สถานะ: สุดยอดทีม AI (Best Model!)</h4>");
+            } else {
+                statusColor = "#fffbeb"; // Yellow bg
+                borderColor = "var(--warning)";
+                feedback.unshift("<h4 style='color:var(--warning); margin:0 0 10px 0;'>⚠️ สถานะ: ยังปรับปรุงให้ดีกว่านี้ได้</h4>");
+            }
+
+            feedbackBox.style.backgroundColor = statusColor;
+            feedbackBox.style.borderLeftColor = borderColor;
+            feedbackBox.innerHTML = feedback.join("<br><br>");
+        }
+
+        // Initialize
+        simulateStacking();
+    </script>
+</body>
+</html>
