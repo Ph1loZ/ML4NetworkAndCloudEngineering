@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neural Network Tuning - ห้องแล็บปรับจูนสมองกล</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --secondary: #06b6d4;
+            --success: #10b981;
+            --danger: #f43f5e;
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 20px; text-align: center; max-width: 900px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1300px;
+        }
+
+        /* Panels */
+        .panel {
+            background: var(--card);
+            padding: 20px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+        }
+        
+        .control-panel { flex: 1; min-width: 320px; }
+        .viz-panel { flex: 1.5; min-width: 500px; }
+        .vocab-panel { flex: 1; min-width: 320px; background: #eff6ff; border-left: 5px solid var(--primary); }
+
+        .param-group {
+            background: #f1f5f9;
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--secondary);
+        }
+
+        .param-header {
+            font-weight: bold;
+            font-size: 1rem;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+            color: #334155;
+        }
+
+        .param-desc { font-size: 0.8rem; color: #64748b; margin-bottom: 8px; }
+
+        select, input[type="range"] {
+            width: 100%;
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            outline: none;
+            cursor: pointer;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            color: white;
+            margin-bottom: 10px;
+        }
+        button:hover { transform: scale(1.02); }
+        .btn-train { background-color: var(--primary); }
+        .btn-reset { background-color: #94a3b8; }
+
+        /* Canvas */
+        canvas {
+            background: #ffffff;
+            border-radius: 8px;
+            border: 2px solid #e2e8f0;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+
+        .feedback-box {
+            padding: 15px;
+            background: #f0fdf4;
+            border-left: 4px solid var(--success);
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            color: #166534;
+        }
+
+        /* Vocabulary Glossary */
+        .vocab-item { margin-bottom: 15px; }
+        .vocab-title { font-weight: bold; color: var(--primary); font-size: 1.05rem; }
+        .vocab-desc { font-size: 0.9rem; color: #334155; line-height: 1.5; }
+
+    </style>
+</head>
+<body>
+
+    <h1>🧠 ห้องแล็บปรับจูน Neural Network</h1>
+    <div class="subtitle">
+        จำลองการปรับแต่ง <b>โครงสร้างสมอง</b> และ <b>เทคนิคการเรียนรู้</b><br>
+        เป้าหมายของคุณคือการกด <b>"เริ่มฝึก (Train)"</b> และทำให้กราฟ <b>Loss (ความผิดพลาด)</b> ลดลงสู่ 0 ให้เร็วและนิ่งที่สุด!
+    </div>
+
+    <div class="container">
+        
+        <!-- พจนานุกรมคำศัพท์ (Vocabulary Panel) -->
+        <div class="panel vocab-panel">
+            <h2 style="margin-top:0; color: #1e3a8a;">📖 คำศัพท์ที่ควรรู้</h2>
+            <div class="vocab-item">
+                <div class="vocab-title">1. Perceptron & MLP</div>
+                <div class="vocab-desc"><b>Perceptron:</b> คือเซลล์สมอง 1 เซลล์ (หรือพนักงาน 1 คน) <br><b>MLP (Multilayer Perceptron):</b> การเอาเซลล์มาต่อกันเป็นชั้นๆ (Layer) ชั้นซ่อนเร้น (Hidden) ยิ่งเยอะยิ่งคิดซับซ้อนได้</div>
+            </div>
+            <div class="vocab-item">
+                <div class="vocab-title">2. Forward & Backpropagation</div>
+                <div class="vocab-desc"><b>Forward Prop:</b> ข้อมูลวิ่งจากซ้ายไปขวา เพื่อเดาคำตอบ<br><b>Backprop:</b> พอรู้ว่าเดาผิด จะส่งข้อความด่าย้อนกลับจากขวามาซ้าย เพื่อบอกให้พนักงานปรับแก้ค่าน้ำหนัก (Weights)</div>
+            </div>
+            <div class="vocab-item">
+                <div class="vocab-title">3. Loss Function</div>
+                <div class="vocab-desc">เครื่องวัดความห่วยแตก! ยิ่ง Loss สูงแปลว่า AI ทายผิดเยอะ เป้าหมายของการฝึกคือการทำยังไงก็ได้ให้ Loss เข้าใกล้ 0</div>
+            </div>
+            <div class="vocab-item">
+                <div class="vocab-title">4. Softmax (Output)</div>
+                <div class="vocab-desc">ฟังก์ชันที่อยู่ชั้นสุดท้ายเสมอ ทำหน้าที่แปลงคะแนนดิบๆ ให้กลายเป็น "เปอร์เซ็นต์ความน่าจะเป็น (%)" ที่รวมกันได้ 100 พอดี</div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="panel control-panel">
+            <h2 style="margin-top:0;">⚙️ ปรับจูนพารามิเตอร์</h2>
+            
+            <div class="param-group">
+                <div class="param-header"><span>โครงสร้าง (Architecture)</span></div>
+                <div class="param-desc">ขนาดความลึกและกว้างของ <b>MLP</b></div>
+                <label style="font-size:0.85rem;">จำนวนชั้นซ่อนเร้น (Hidden Layers): <span id="val-layers">2</span></label>
+                <input type="range" id="slide-layers" min="1" max="5" value="2" oninput="updateUI()">
+                
+                <label style="font-size:0.85rem; display:block; margin-top:10px;">เซลล์ประสาทต่อชั้น (Neurons): <span id="val-neurons">16</span></label>
+                <input type="range" id="slide-neurons" min="4" max="64" step="4" value="16" oninput="updateUI()">
+            </div>
+
+            <div class="param-group">
+                <div class="param-header"><span>Activation Function</span></div>
+                <div class="param-desc">กฎการกรองสัญญาณของพนักงานแต่ละคน</div>
+                <select id="sel-activation">
+                    <option value="relu" selected>ReLU (ตัดค่าลบทิ้งเป็น 0 - เรียนรู้ไวมาก)</option>
+                    <option value="sigmoid">Sigmoid (บีบค่า 0 ถึง 1 - ระวังเรียนรู้ช้า)</option>
+                </select>
+            </div>
+
+            <div class="param-group">
+                <div class="param-header"><span>Optimizer & Gradient Descent</span></div>
+                <div class="param-desc">
+                    <b>Gradient Descent:</b> การก้าวเดินลงเขาเพื่อหาจุดผิดพลาดต่ำสุด <br>
+                    <b>Optimizer:</b> วิธีการก้าวเดิน (SGD = เดินธรรมดา, Adam = มีเข็มทิศอัจฉริยะ)
+                </div>
+                <select id="sel-optimizer">
+                    <option value="adam" selected>Adam (อัจฉริยะ ปรับก้าวอัตโนมัติ)</option>
+                    <option value="sgd">SGD (พื้นฐาน ก้าวเท่าๆ กัน)</option>
+                </select>
+                
+                <label style="font-size:0.85rem; display:block; margin-top:10px;">Learning Rate (ขนาดของก้าวเดิน):</label>
+                <select id="sel-lr">
+                    <option value="0.001">0.001 (ก้าวเล็กมาก - เต่าคลาน)</option>
+                    <option value="0.01" selected>0.01 (ก้าวพอดี - แนะนำ)</option>
+                    <option value="0.5">0.5 (ก้าวกระโดด - ระเบิด!)</option>
+                </select>
+            </div>
+
+            <button class="btn-train" id="btn-train" onclick="toggleTrain()">▶️ เริ่มฝึก (Start Training)</button>
+            <button class="btn-reset" onclick="resetSim()">🔄 รีเซ็ตกราฟ</button>
+        </div>
+
+        <!-- Visualization Panel -->
+        <div class="panel viz-panel">
+            <h2 style="margin-top:0; color: var(--danger);">📉 กราฟ Loss Function (ความผิดพลาด)</h2>
+            <div style="font-size: 0.9rem; color: #64748b; margin-bottom: 10px;">รอบการฝึก (Epochs): <span id="txt-epoch" style="font-weight:bold; color:var(--primary);">0</span> | ค่า Loss ปัจจุบัน: <span id="txt-loss" style="font-weight:bold; color:var(--danger);">1.000</span></div>
+            
+            <canvas id="lossCanvas" width="500" height="300"></canvas>
+            
+            <div class="feedback-box" id="feedback-box">
+                ปรับแต่งพารามิเตอร์ด้านซ้าย และกด <b>"เริ่มฝึก"</b> เพื่อดูผลลัพธ์ครับ!
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById('lossCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        let epochs = 0;
+        let currentLoss = 1.0;
+        let lossHistory = [];
+        let isTraining = false;
+        let trainInterval;
+        const maxDisplayEpochs = 200;
+
+        function updateUI() {
+            document.getElementById('val-layers').innerText = document.getElementById('slide-layers').value;
+            document.getElementById('val-neurons').innerText = document.getElementById('slide-neurons').value;
+        }
+
+        function drawGrid() {
+            ctx.clearRect(0, 0, width, height);
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            
+            // แนวนอน (0.0 ถึง 1.0)
+            [0, 0.25, 0.5, 0.75, 1.0].forEach(val => {
+                let y = height - (val * (height - 40) + 20);
+                ctx.beginPath(); ctx.moveTo(40, y); ctx.lineTo(width, y); ctx.stroke();
+                ctx.fillStyle = '#64748b'; ctx.font = '10px Arial'; ctx.textAlign = 'right';
+                ctx.fillText(val.toFixed(2), 35, y + 4);
+            });
+        }
+
+        function drawLossCurve() {
+            drawGrid();
+            if (lossHistory.length === 0) return;
+
+            ctx.beginPath();
+            ctx.strokeStyle = 'var(--danger)';
+            ctx.lineWidth = 3;
+
+            for (let i = 0; i < lossHistory.length; i++) {
+                let x = 40 + (i / maxDisplayEpochs) * (width - 40);
+                let y = height - (lossHistory[i] * (height - 40) + 20);
+                
+                // ป้องกันกราฟทะลุขอบ
+                if (y < 0) y = 0;
+                if (y > height) y = height;
+
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+        }
+
+        function simulateTrainingStep() {
+            if (epochs >= maxDisplayEpochs || isNaN(currentLoss)) {
+                toggleTrain();
+                return;
+            }
+
+            const layers = parseInt(document.getElementById('slide-layers').value);
+            const neurons = parseInt(document.getElementById('slide-neurons').value);
+            const act = document.getElementById('sel-activation').value;
+            const opt = document.getElementById('sel-optimizer').value;
+            const lr = parseFloat(document.getElementById('sel-lr').value);
+
+            // Simulation Math
+            let decreaseRate = 0;
+            let noise = (Math.random() - 0.5) * 0.02;
+
+            // 1. Learning Rate Effect
+            if (lr === 0.5) {
+                // Learning Rate ระเบิด (Divergence)
+                currentLoss += (Math.random() * 0.2); 
+            } else {
+                decreaseRate = lr * 2;
+                
+                // 2. Optimizer Effect
+                if (opt === 'adam') decreaseRate *= 2.5; // Adam เร็วกว่า
+                if (opt === 'sgd') decreaseRate *= 0.5; // SGD ช้ากว่า
+                
+                // 3. Activation Effect (Vanishing Gradient)
+                if (act === 'sigmoid') {
+                    // ยิ่งลึกยิ่งช้า (Vanishing Gradient)
+                    decreaseRate *= Math.pow(0.7, layers);
+                } else if (act === 'relu') {
+                    // ReLU ไม่เจอปัญหานี้
+                    decreaseRate *= 1.2;
+                }
+
+                // 4. Capacity (MLP size)
+                let capacity = (layers * neurons) / 100;
+                decreaseRate *= (0.5 + capacity);
+
+                // Update Loss (Forward + Backprop simulation)
+                currentLoss -= (currentLoss * decreaseRate) + noise;
+            }
+
+            if (currentLoss < 0.01) currentLoss = 0.01 + Math.abs(noise); // หยุดที่ใกล้ๆ 0
+            if (currentLoss > 2.0) currentLoss = 2.0; // ระเบิดสุดแค่นี้
+            
+            lossHistory.push(currentLoss);
+            epochs++;
+
+            // Update Text
+            document.getElementById('txt-epoch').innerText = epochs;
+            document.getElementById('txt-loss').innerText = isNaN(currentLoss) || currentLoss >= 2.0 ? 'ระเบิด (NaN)' : currentLoss.toFixed(4);
+            
+            drawLossCurve();
+            analyzeFeedback(act, opt, lr, layers);
+        }
+
+        function analyzeFeedback(act, opt, lr, layers) {
+            const fbBox = document.getElementById('feedback-box');
+            let fb = "";
+
+            if (lr === 0.5) {
+                fb = "💥 <b>กราฟระเบิด (Exploding Gradient)!</b><br>คุณตั้ง Learning Rate สูงเกินไป การใช้ <b>Gradient Descent</b> ก้าวเดินกว้างเกินไป ทำให้ก้าวข้ามจุดต่ำสุดไปมาจน Loss พุ่งกระฉูด!";
+                fbBox.style.backgroundColor = '#fef2f2'; fbBox.style.borderLeftColor = 'var(--danger)'; fbBox.style.color = '#991b1b';
+            } else if (act === 'sigmoid' && layers >= 4) {
+                fb = "🐢 <b>กราฟลงช้ามาก (Vanishing Gradient)!</b><br>นี่คือปัญหาคลาสสิก! การใช้ <b>Sigmoid</b> ในเครือข่ายที่ลึก (MLP หลายชั้น) ทำให้ตอนทำ <b>Backpropagation</b> สัญญาณด่าย้อนกลับมันจางหายไป พนักงานชั้นแรกๆ เลยไม่ได้ปรับปรุงตัว ลองเปลี่ยนเป็น <b>ReLU</b> ดูสิ!";
+                fbBox.style.backgroundColor = '#fef3c7'; fbBox.style.borderLeftColor = 'var(--warning)'; fbBox.style.color = '#92400e';
+            } else if (lr === 0.001 && opt === 'sgd') {
+                fb = "🐌 <b>การเรียนรู้แบบเต่าคลาน:</b><br>ใช้ SGD (ประแจธรรมดา) แถม Learning Rate เล็กจิ๋ว โมเดลจะใช้เวลานานมากๆๆ กว่า Loss จะลงไปถึง 0 ลองเปลี่ยน Optimizer เป็น <b>Adam</b> ดูครับ";
+                fbBox.style.backgroundColor = '#eff6ff'; fbBox.style.borderLeftColor = 'var(--secondary)'; fbBox.style.color = '#1e3a8a';
+            } else {
+                fb = "🚀 <b>สุดยอด! โมเดลเรียนรู้ได้ดี (Convergence):</b><br>กระบวนการ <b>Forward Propagation</b> ส่งข้อมูลไป แล้ว <b>Backpropagation</b> คำนวณความผิดพลาด ส่งให้ <b>Optimizer</b> ปรับค่าน้ำหนักได้อย่างสมบูรณ์แบบ กราฟ Loss จึงดิ่งลงอย่างสวยงาม!";
+                fbBox.style.backgroundColor = '#f0fdf4'; fbBox.style.borderLeftColor = 'var(--success)'; fbBox.style.color = '#166534';
+            }
+            fbBox.innerHTML = fb;
+        }
+
+        function toggleTrain() {
+            const btn = document.getElementById('btn-train');
+            isTraining = !isTraining;
+
+            if (isTraining) {
+                if (epochs >= maxDisplayEpochs) resetSim();
+                btn.innerHTML = "⏸️ หยุดพัก (Pause)";
+                btn.style.backgroundColor = "var(--warning)";
+                trainInterval = setInterval(simulateTrainingStep, 50);
+            } else {
+                btn.innerHTML = "▶️ เริ่มฝึกต่อ (Resume)";
+                btn.style.backgroundColor = "var(--primary)";
+                clearInterval(trainInterval);
+            }
+        }
+
+        function resetSim() {
+            if (isTraining) toggleTrain();
+            epochs = 0;
+            currentLoss = 1.0;
+            lossHistory = [];
+            document.getElementById('txt-epoch').innerText = '0';
+            document.getElementById('txt-loss').innerText = '1.000';
+            document.getElementById('btn-train').innerHTML = "▶️ เริ่มฝึก (Start Training)";
+            document.getElementById('btn-train').style.backgroundColor = "var(--primary)";
+            
+            const fbBox = document.getElementById('feedback-box');
+            fbBox.innerHTML = "ปรับแต่งพารามิเตอร์ด้านซ้าย และกด <b>'เริ่มฝึก'</b> เพื่อดูผลลัพธ์ครับ!";
+            fbBox.style.backgroundColor = '#f0fdf4'; fbBox.style.borderLeftColor = 'var(--success)'; fbBox.style.color = '#166534';
+
+            drawGrid();
+        }
+
+        // Initialize
+        updateUI();
+        drawGrid();
+    </script>
+</body>
+</html>
