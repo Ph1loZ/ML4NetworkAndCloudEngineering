@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PCA Interactive Game - เกมฉายไฟหาเงา</title>
+    <style>
+        :root {
+            --primary: #0ea5e9; /* Light Blue */
+            --success: #10b981; /* Green */
+            --warning: #f59e0b; /* Amber */
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1100px;
+            justify-content: center;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            flex: 1;
+            min-width: 320px;
+            max-width: 400px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .param-group {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+        }
+
+        .param-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 10px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            accent-color: var(--primary);
+            cursor: pointer;
+        }
+
+        .score-box {
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            font-size: 1.1rem;
+            font-weight: bold;
+            border: 2px dashed #cbd5e1;
+            background: #f8fafc;
+            transition: all 0.3s;
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            height: 30px;
+            background-color: #e2e8f0;
+            border-radius: 15px;
+            margin-top: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            width: 0%;
+            background-color: var(--primary);
+            transition: width 0.1s, background-color 0.3s;
+        }
+
+        .btn-solve {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn-solve:hover { transform: scale(1.02); background-color: #0284c7; }
+
+        /* Canvas Panel */
+        .plot-panel {
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+        }
+
+        canvas {
+            background-color: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+            margin-top: 15px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+        .legend span { display: flex; align-items: center; gap: 8px; }
+        
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background: #eff6ff;
+            border-left: 4px solid var(--primary);
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+            color: #1e3a8a;
+            line-height: 1.6;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>🔦 PCA: เกมฉายไฟยุบมิติข้อมูล</h1>
+    <div class="subtitle">
+        <b>Principal Component Analysis (PCA)</b> คือการยุบมิติข้อมูล (เช่น จาก 2D เหลือ 1D) โดยพยายามรักษา <b>"ความกว้าง (Variance)"</b> ของข้อมูลไว้ให้มากที่สุด<br>
+        ลองเลื่อนสไลเดอร์เพื่อหมุน "แกนรับเงา (เส้นสีส้ม)" ภารกิจของคุณคือหามุมที่เงาของจุดสีน้ำเงิน กระจายตัวกว้างที่สุด!
+    </div>
+
+    <div class="container">
+        
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <div class="param-group">
+                <div class="param-header">
+                    <span>🔄 หมุนแกนรับเงา (Angle)</span>
+                    <span id="val-angle">0°</span>
+                </div>
+                <input type="range" id="slide-angle" min="0" max="179" value="0" oninput="updatePlot()">
+            </div>
+
+            <div class="score-box" id="score-box">
+                การกระจายตัวของเงา (Variance)
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="variance-bar"></div>
+                </div>
+                <div id="status-text" style="font-size: 0.9rem; margin-top: 10px; color: #64748b;">หมุนแกนให้หลอดสีฟ้าเต็มที่สุด!</div>
+            </div>
+
+            <button class="btn-solve" onclick="autoSolve()">🤖 ให้ AI ค้นหาแกนหลัก (PC1)</button>
+
+            <div class="explanation">
+                <strong>💡 ความหมายของการเล่นเกมนี้:</strong><br>
+                เส้นสีส้มที่คุณกำลังหมุน คือ <b>Principal Component ที่ 1 (PC1)</b> ทันทีที่คุณหาจุดที่เงากระจายกว้างที่สุดได้ (Variance สูงสุด) นั่นแปลว่าคุณสามารถโยนแกน X และ Y ทิ้งไปได้เลย แล้วใช้แค่พิกัดบนเส้นสีส้มเส้นเดียวในการเก็บข้อมูลแทน! (นี่คือการลดจาก 2D เหลือ 1D)
+            </div>
+        </div>
+
+        <!-- Plot Panel -->
+        <div class="plot-panel">
+            <canvas id="pcaCanvas" width="500" height="400"></canvas>
+            <div class="legend">
+                <span><div style="width: 12px; height: 12px; border-radius: 50%; background: #3b82f6;"></div> ข้อมูลดั้งเดิม (2D)</span>
+                <span><div style="width: 12px; height: 12px; border-radius: 50%; background: #f97316;"></div> เงาที่ฉายลงมา (1D)</span>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById('pcaCanvas');
+        const ctx = canvas.getContext('2d');
+        const cx = canvas.width / 2;
+        const cy = canvas.height / 2;
+
+        let points = [];
+        let maxVariance = 0;
+        let optimalAngle = 0;
+
+        // สร้างข้อมูลที่มีความสัมพันธ์กัน (เช่น ลักษณะทรงวงรีเอียงๆ)
+        function initData() {
+            points = [];
+            // สมมติกลุ่มข้อมูลที่เอียงทำมุมประมาณ 35 องศา
+            const targetAngle = 35 * Math.PI / 180;
+            const cosA = Math.cos(targetAngle);
+            const sinA = Math.sin(targetAngle);
+
+            for (let i = 0; i < 50; i++) {
+                // สร้างการกระจายตัวแนวยาว (Major axis)
+                let spread = (Math.random() - 0.5) * 250; 
+                // สร้างการกระจายตัวแนวแคบ (Minor axis)
+                let noise = (Math.random() - 0.5) * 60; 
+
+                // หมุนพิกัดเพื่อสร้างกราฟวงรีเอียง
+                let px = spread * cosA - noise * sinA;
+                let py = spread * sinA + noise * cosA;
+
+                points.push({ x: px, y: py });
+            }
+
+            // คำนวณหา Variance ที่สูงที่สุดล่วงหน้า (เพื่อทำ Scale ของหลอดเปอร์เซ็นต์)
+            for (let a = 0; a < 180; a++) {
+                let rad = a * Math.PI / 180;
+                let variance = calculateVariance(rad);
+                if (variance > maxVariance) {
+                    maxVariance = variance;
+                    optimalAngle = a;
+                }
+            }
+        }
+
+        // คำนวณ Variance (การกระจายตัวของจุดที่ฉายลงมาบนเส้น)
+        function calculateVariance(angleRad) {
+            let cosT = Math.cos(angleRad);
+            let sinT = Math.sin(angleRad);
+            
+            // เนื่องจากจุดถูกสร้างให้อยู่รอบ (0,0) เราจึงไม่ต้องหา Mean ใหม่ (Mean ~ 0)
+            let sumSq = 0;
+            points.forEach(pt => {
+                // Dot Product: หาความยาวของเงาบนแกน
+                let projectionDist = (pt.x * cosT) + (pt.y * sinT);
+                sumSq += projectionDist * projectionDist;
+            });
+            return sumSq / points.length; // ค่า Variance
+        }
+
+        function drawGrid() {
+            ctx.strokeStyle = '#e2e8f0';
+            ctx.lineWidth = 1;
+            
+            ctx.beginPath(); ctx.moveTo(0, cy); ctx.lineTo(canvas.width, cy); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, canvas.height); ctx.stroke();
+        }
+
+        function updatePlot() {
+            const angleDeg = parseInt(document.getElementById('slide-angle').value);
+            document.getElementById('val-angle').innerText = angleDeg + '°';
+
+            const angleRad = -angleDeg * Math.PI / 180; // กลับเครื่องหมายเพื่อให้หมุนตามแกนหน้าจอคอม
+            const cosT = Math.cos(angleRad);
+            const sinT = Math.sin(angleRad);
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawGrid();
+
+            // 1. วาดเส้นแกนรับเงา (PC Line)
+            ctx.beginPath();
+            ctx.moveTo(cx + cosT * 400, cy + sinT * 400);
+            ctx.lineTo(cx - cosT * 400, cy - sinT * 400);
+            ctx.strokeStyle = '#f97316'; // Orange
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // คำนวณ Variance ปัจจุบัน
+            let currentVar = calculateVariance(angleRad);
+            let percentage = (currentVar / maxVariance) * 100;
+            if (percentage > 100) percentage = 100;
+
+            // 2. วาดจุดข้อมูล (Data Points) และเส้นฉายเงา (Projection Lines)
+            points.forEach(pt => {
+                // ตำแหน่งบนเส้น PC
+                let projDist = (pt.x * cosT) + (pt.y * sinT);
+                let projX = cx + projDist * cosT;
+                let projY = cy + projDist * sinT;
+
+                let realX = cx + pt.x;
+                let realY = cy + pt.y;
+
+                // วาดเส้นฉายเงา (สีเทาจาง)
+                ctx.beginPath();
+                ctx.moveTo(realX, realY);
+                ctx.lineTo(projX, projY);
+                ctx.strokeStyle = 'rgba(148, 163, 184, 0.4)';
+                ctx.lineWidth = 1;
+                ctx.setLineDash([3, 3]);
+                ctx.stroke();
+                ctx.setLineDash([]);
+
+                // วาดเงาบนเส้น PC (จุดสีส้ม)
+                ctx.beginPath();
+                ctx.arc(projX, projY, 4, 0, Math.PI * 2);
+                ctx.fillStyle = '#f97316';
+                ctx.fill();
+
+                // วาดจุดข้อมูลจริง (จุดสีน้ำเงิน)
+                ctx.beginPath();
+                ctx.arc(realX, realY, 5, 0, Math.PI * 2);
+                ctx.fillStyle = '#3b82f6';
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+
+            // 3. อัปเดต UI หลอดพลังงาน
+            const vBar = document.getElementById('variance-bar');
+            const scoreBox = document.getElementById('score-box');
+            const statusText = document.getElementById('status-text');
+
+            vBar.style.width = percentage + '%';
+
+            if (percentage >= 99) {
+                vBar.style.backgroundColor = 'var(--success)';
+                scoreBox.style.borderColor = 'var(--success)';
+                scoreBox.style.backgroundColor = '#f0fdf4';
+                statusText.innerHTML = "🏆 <b>ยอดเยี่ยม!</b> นี่คือแกน Principal Component (PC1) ที่สมบูรณ์แบบ";
+                statusText.style.color = 'var(--success)';
+            } else {
+                vBar.style.backgroundColor = 'var(--primary)';
+                scoreBox.style.borderColor = '#cbd5e1';
+                scoreBox.style.backgroundColor = '#f8fafc';
+                statusText.innerHTML = "หมุนแกนให้หลอดสีฟ้าเต็มที่สุด!";
+                statusText.style.color = '#64748b';
+            }
+        }
+
+        // ฟังก์ชันเมื่อกดปุ่ม "ให้ AI ค้นหา"
+        function autoSolve() {
+            const slider = document.getElementById('slide-angle');
+            let currentAngle = parseInt(slider.value);
+            
+            // หาว่าต้องหมุนทวนเข็มหรือตามเข็มนาฬิกา
+            // (ต้องชดเชยการคำนวณแกนบนจอกับค่าองศาเล็กน้อย เนื่องจากค่าพิกัด canvas กลับด้านกันกับวงกลมคณิตศาสตร์)
+            let target = 180 - optimalAngle; 
+            
+            const animate = setInterval(() => {
+                let diff = target - currentAngle;
+                
+                // ถ้าระยะห่างเกิน 90 องศา ให้วิ่งย้อนกลับทางสั้นกว่า
+                if (diff > 90) target -= 180;
+                if (diff < -90) target += 180;
+
+                if (currentAngle < target) currentAngle++;
+                else if (currentAngle > target) currentAngle--;
+                else clearInterval(animate);
+
+                // ปรับค่าให้อยู่ในกรอบ 0-179
+                let displayAngle = currentAngle % 180;
+                if (displayAngle < 0) displayAngle += 180;
+
+                slider.value = displayAngle;
+                updatePlot();
+
+                if (displayAngle === (180 - optimalAngle) % 180) {
+                    clearInterval(animate);
+                }
+            }, 20);
+        }
+
+        // โหลดครั้งแรก
+        initData();
+        updatePlot();
+    </script>
+</body>
+</html>
