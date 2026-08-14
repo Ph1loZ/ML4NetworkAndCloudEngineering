@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>K-Means Tuning - จูนพารามิเตอร์จัดกลุ่ม</title>
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --secondary: #0ea5e9;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 { color: var(--primary); text-align: center; margin-bottom: 5px; }
+        .subtitle { color: #64748b; margin-bottom: 30px; text-align: center; max-width: 800px; line-height: 1.6; }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1100px;
+            justify-content: center;
+        }
+
+        /* Control Panel */
+        .control-panel {
+            flex: 1;
+            min-width: 320px;
+            max-width: 400px;
+            background: var(--card);
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .param-group {
+            background: #f1f5f9;
+            padding: 15px;
+            border-radius: 12px;
+            border-left: 5px solid var(--primary);
+        }
+
+        .param-header {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .param-desc {
+            font-size: 0.85rem;
+            color: #475569;
+            margin-bottom: 12px;
+            line-height: 1.5;
+        }
+
+        input[type="range"], select {
+            width: 100%;
+            accent-color: var(--primary);
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+        }
+
+        .btn-train {
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .btn-train:hover { transform: scale(1.02); background-color: #7c3aed; }
+
+        /* Plot Panel */
+        .plot-panel {
+            flex: 2;
+            min-width: 500px;
+            background: var(--card);
+            border-radius: 16px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            position: relative;
+            padding: 20px;
+            border: 2px solid #e2e8f0;
+            display: flex;
+            flex-direction: column;
+        }
+
+        canvas {
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #cbd5e1;
+            width: 100%;
+            height: 400px;
+        }
+
+        .score-box {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 15px;
+            padding: 15px;
+            background: #f1f5f9;
+            border-radius: 8px;
+            font-weight: bold;
+        }
+
+        .inertia-val {
+            font-size: 1.8rem;
+            color: var(--primary);
+        }
+
+        .feedback-box {
+            margin-top: 15px;
+            padding: 15px;
+            background: #eff6ff;
+            border-left: 5px solid var(--primary);
+            border-radius: 0 8px 8px 0;
+            font-size: 0.95rem;
+            color: #1e3a8a;
+            line-height: 1.6;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>⚙️ จูนพารามิเตอร์ K-Means Clustering</h1>
+    <div class="subtitle">
+        แม้ K-Means จะเก่งเรื่องการจัดกลุ่ม แต่มันก็มีจุดอ่อนคือ <b>"ต้องเดาจำนวนกลุ่ม (K) ล่วงหน้า"</b> และ <b>"อ่อนไหวต่อจุดเริ่มต้น"</b><br>
+        ลองปรับพารามิเตอร์เพื่อช่วยให้ AI หาจุดสมดุล และจัดกลุ่มข้อมูลชุดนี้ (ซึ่งมี 4 กลุ่มตามธรรมชาติ) ให้สมบูรณ์แบบที่สุด!
+    </div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            
+            <div class="param-group">
+                <div class="param-header">
+                    <span>1. n_clusters (K)</span>
+                    <span id="val-k" style="color: var(--primary);">4</span>
+                </div>
+                <div class="param-desc">
+                    จำนวนกลุ่มที่ต้องการให้ AI แบ่ง (ลองปรับดูว่าถ้า K น้อยไป หรือมากไป ภาพรวมจะเป็นอย่างไร)
+                </div>
+                <input type="range" id="slide-k" min="1" max="8" value="4" oninput="updateUIVals()">
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span>2. init (การสุ่มจุดเริ่มต้น)</span>
+                </div>
+                <div class="param-desc">
+                    - <b>random:</b> สุ่มโยนจุดศูนย์กลางมั่วๆ (บางครั้งอาจไปกระจุกอยู่ที่เดียวกัน ทำให้แบ่งกลุ่มพลาด)<br>
+                    - <b>k-means++:</b> ฉลาดกว่า! สุ่มจุดแรกมั่ว แต่จุดถัดไปจะพยายามวางให้ "ห่างจากจุดแรกมากที่สุด" (แนะนำ!)
+                </div>
+                <select id="sel-init">
+                    <option value="k-means++" selected>k-means++ (กระจายจุดเริ่มต้นให้ห่างกัน)</option>
+                    <option value="random">random (สุ่มมั่วๆ แบบดั้งเดิม)</option>
+                </select>
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span>3. max_iter</span>
+                    <span id="val-iter">10</span>
+                </div>
+                <div class="param-desc">
+                    จำนวนรอบสูงสุดที่ยอมให้ AI ขยับจุดศูนย์กลาง ถ้าน้อยไป AI อาจจะยังเดินไม่ถึงจุดที่ควรอยู่ (ยังไม่ Converge)
+                </div>
+                <input type="range" id="slide-iter" min="1" max="20" value="10" oninput="updateUIVals()">
+            </div>
+
+            <button class="btn-train" onclick="runKMeans()">▶️ ประมวลผล K-Means</button>
+            <button onclick="generateData()" style="padding: 10px; background: #cbd5e1; color: #334155; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: -5px;">
+                🎲 รีเซ็ตข้อมูลใหม่
+            </button>
+        </div>
+
+        <!-- Plot Panel -->
+        <div class="plot-panel">
+            <canvas id="clusterCanvas" width="600" height="400"></canvas>
+            
+            <div class="score-box">
+                <div>
+                    <div>ความคลาดเคลื่อนรวม (Inertia / WCSS)</div>
+                    <div style="font-size: 0.8rem; color: #64748b; font-weight: normal;">*ผลรวมระยะห่างจากจุดข้อมูล ไปหาศูนย์กลาง ยิ่งน้อยยิ่งดี</div>
+                </div>
+                <div class="inertia-val" id="val-inertia">0.0</div>
+            </div>
+
+            <div class="feedback-box" id="feedback-box">
+                ปรับพารามิเตอร์แล้วกด <b>"ประมวลผล K-Means"</b> เพื่อดูผลลัพธ์ครับ
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const canvas = document.getElementById('clusterCanvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        const colors = ['#3b82f6', '#ef4444', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
+        
+        let dataPoints = [];
+        let centroids = [];
+
+        function updateUIVals() {
+            document.getElementById('val-k').innerText = document.getElementById('slide-k').value;
+            document.getElementById('val-iter').innerText = document.getElementById('slide-iter').value;
+        }
+
+        // 1. สร้างข้อมูลดิบ (4 กลุ่มตามธรรมชาติ)
+        function generateData() {
+            dataPoints = [];
+            const centers = [
+                {x: 150, y: 120}, // Top Left
+                {x: 450, y: 120}, // Top Right
+                {x: 150, y: 280}, // Bottom Left
+                {x: 450, y: 280}  // Bottom Right
+            ];
+
+            centers.forEach(c => {
+                for(let i = 0; i < 40; i++) {
+                    dataPoints.push({
+                        x: c.x + (Math.random() - 0.5) * 80,
+                        y: c.y + (Math.random() - 0.5) * 80,
+                        cluster: -1
+                    });
+                }
+            });
+            centroids = [];
+            drawCanvas();
+            document.getElementById('val-inertia').innerText = "0.0";
+            document.getElementById('feedback-box').innerHTML = "ปรับพารามิเตอร์แล้วกด <b>'ประมวลผล K-Means'</b> เพื่อดูผลลัพธ์ครับ";
+            document.getElementById('feedback-box').style.backgroundColor = '#eff6ff';
+            document.getElementById('feedback-box').style.borderLeftColor = 'var(--primary)';
+        }
+
+        function getDistanceSq(p1, p2) {
+            return Math.pow(p1.x - p2.x, 2) + Math.pow(p1.y - p2.y, 2);
+        }
+
+        // 2. K-Means Algorithm
+        function runKMeans() {
+            const k = parseInt(document.getElementById('slide-k').value);
+            const initMethod = document.getElementById('sel-init').value;
+            const maxIter = parseInt(document.getElementById('slide-iter').value);
+
+            // a. Initialization
+            centroids = [];
+            let tempPoints = [...dataPoints];
+
+            if (initMethod === 'random') {
+                // สุ่มมั่วๆ จากจุดที่มีอยู่ (อาจจะไปกระจุกกันได้)
+                for (let i = 0; i < k; i++) {
+                    let idx = Math.floor(Math.random() * tempPoints.length);
+                    centroids.push({x: tempPoints[idx].x, y: tempPoints[idx].y});
+                    tempPoints.splice(idx, 1);
+                }
+            } else {
+                // k-means++ (ฉลาดกว่า: เลือกจุดแรกสุ่ม จุดต่อไปเลือกให้ห่างจากกลุ่มเดิมมากที่สุด)
+                let firstIdx = Math.floor(Math.random() * tempPoints.length);
+                centroids.push({x: tempPoints[firstIdx].x, y: tempPoints[firstIdx].y});
+                
+                for (let i = 1; i < k; i++) {
+                    let maxDistSq = -1;
+                    let nextCentroid = null;
+
+                    tempPoints.forEach(pt => {
+                        // หาระยะทางไปยัง centroid ที่ใกล้ที่สุดที่มีอยู่แล้ว
+                        let minDistToCentroid = Infinity;
+                        centroids.forEach(c => {
+                            let d = getDistanceSq(pt, c);
+                            if (d < minDistToCentroid) minDistToCentroid = d;
+                        });
+
+                        // เลือกจุดที่มี minDistToCentroid มากที่สุด (ห่างไกลความเจริญที่สุด)
+                        if (minDistToCentroid > maxDistSq) {
+                            maxDistSq = minDistToCentroid;
+                            nextCentroid = {x: pt.x, y: pt.y};
+                        }
+                    });
+                    centroids.push(nextCentroid);
+                }
+            }
+
+            // b. Iteration Loop (Assign & Update)
+            let currentIter = 0;
+            let converged = false;
+
+            while (currentIter < maxIter && !converged) {
+                converged = true;
+                
+                // Assign
+                dataPoints.forEach(pt => {
+                    let minDist = Infinity;
+                    let closest = -1;
+                    centroids.forEach((c, i) => {
+                        let d = getDistanceSq(pt, c);
+                        if (d < minDist) { minDist = d; closest = i; }
+                    });
+                    if (pt.cluster !== closest) {
+                        pt.cluster = closest;
+                        converged = false;
+                    }
+                });
+
+                // Update
+                if (!converged) {
+                    let sumsX = new Array(k).fill(0);
+                    let sumsY = new Array(k).fill(0);
+                    let counts = new Array(k).fill(0);
+
+                    dataPoints.forEach(pt => {
+                        sumsX[pt.cluster] += pt.x;
+                        sumsY[pt.cluster] += pt.y;
+                        counts[pt.cluster]++;
+                    });
+
+                    for (let i = 0; i < k; i++) {
+                        if (counts[i] > 0) {
+                            centroids[i].x = sumsX[i] / counts[i];
+                            centroids[i].y = sumsY[i] / counts[i];
+                        }
+                    }
+                }
+                currentIter++;
+            }
+
+            // c. Calculate Inertia (WCSS)
+            let inertia = 0;
+            dataPoints.forEach(pt => {
+                inertia += Math.sqrt(getDistanceSq(pt, centroids[pt.cluster])); 
+            });
+
+            // d. Update UI
+            drawCanvas();
+            document.getElementById('val-inertia').innerText = Math.round(inertia).toLocaleString();
+
+            // e. Generate Feedback
+            let fb = [];
+            const fbBox = document.getElementById('feedback-box');
+
+            if (k < 4) {
+                fb.push("⚠️ <b>Underfitting (K น้อยไป):</b> ข้อมูลมี 4 กลุ่มธรรมชาติ แต่คุณให้แบ่งน้อยกว่านั้น สังเกตว่าบางกลุ่มโดนรวบเข้าด้วยกัน ทำให้ค่าความคลาดเคลื่อน (Inertia) สูงปรี๊ด!");
+                fbBox.style.backgroundColor = '#fef3c7'; fbBox.style.borderLeftColor = 'var(--warning)';
+            } else if (k === 4) {
+                fb.push("🏆 <b>Sweet Spot (K=4 กำลังดี):</b> นี่คือจำนวนกลุ่มที่เหมาะสมที่สุดสำหรับข้อมูลชุดนี้! (ถ้าทดลองเพิ่ม K เป็น 5, 6 ค่า Inertia จะลดลงไม่มากแล้ว เทคนิคนี้เรียกว่า <b>Elbow Method</b>)");
+                fbBox.style.backgroundColor = '#dcfce7'; fbBox.style.borderLeftColor = 'var(--success)';
+            } else {
+                fb.push("🚨 <b>Over-segmentation (K มากไป):</b> คุณบังคับให้ AI แบ่งกลุ่มย่อยเกินความจำเป็น สังเกตว่ากลุ่มธรรมชาติกลุ่มเดียว ถูกหั่นครึ่งอย่างไม่เป็นธรรมชาติ");
+                fbBox.style.backgroundColor = '#fdf2f8'; fbBox.style.borderLeftColor = '#ec4899';
+            }
+
+            if (maxIter < 3) {
+                fb.push("⏱️ <b>หยุดก่อนกำหนด (max_iter ต่ำไป):</b> AI ยังเดินไม่ถึงจุดกึ่งกลางที่สมบูรณ์เลย แต่มันถูกบังคับให้หยุดซะก่อน! กลุ่มข้อมูลจึงดูเบี้ยวๆ (ยังไม่ Converge)");
+            }
+
+            if (initMethod === 'random' && k >= 4) {
+                fb.push("🎲 <b>จุดอ่อนของ Random Init:</b> หากลองกดประมวลผลซ้ำๆ หลายๆ รอบด้วยโหมด random บางรอบ AI อาจจะแบ่งกลุ่มพลาด (Local Minimum) เพราะจุดเริ่มต้นดันไปตกกระจุกอยู่ฝั่งเดียวกันหมด! นี่คือเหตุผลที่เราควรใช้ k-means++ ครับ");
+            }
+
+            fbBox.innerHTML = fb.join("<br><br>");
+        }
+
+        function drawCanvas() {
+            ctx.clearRect(0, 0, width, height);
+
+            // Draw points
+            dataPoints.forEach(pt => {
+                ctx.beginPath();
+                ctx.arc(pt.x, pt.y, 6, 0, Math.PI * 2);
+                ctx.fillStyle = pt.cluster === -1 ? '#94a3b8' : colors[pt.cluster % colors.length];
+                ctx.fill();
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 1;
+                ctx.stroke();
+            });
+
+            // Draw centroids
+            centroids.forEach((c, index) => {
+                ctx.save();
+                ctx.translate(c.x, c.y);
+                ctx.shadowColor = 'rgba(0,0,0,0.5)'; ctx.shadowBlur = 4; ctx.shadowOffsetX = 1; ctx.shadowOffsetY = 1;
+                ctx.beginPath();
+                for (let i = 0; i < 5; i++) {
+                    ctx.lineTo(Math.cos((18+i*72)*Math.PI/180)*15, -Math.sin((18+i*72)*Math.PI/180)*15);
+                    ctx.lineTo(Math.cos((54+i*72)*Math.PI/180)*6, -Math.sin((54+i*72)*Math.PI/180)*6);
+                }
+                ctx.closePath();
+                ctx.fillStyle = colors[index % colors.length];
+                ctx.fill();
+                ctx.strokeStyle = '#1e293b'; ctx.lineWidth = 2; ctx.stroke();
+                ctx.restore();
+            });
+        }
+
+        // Initialize
+        generateData();
+    </script>
+</body>
+</html>
