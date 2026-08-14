@@ -1,0 +1,1266 @@
+ Gemini
+New chat
+Search chats
+Images
+Videos
+Library
+Gems
+New notebook
+AUN-QA Programme Assessment Form
+Post-Quantum Federated Learning for Collaborative Cyber Defense
+All notebooks
+เกมทายสัตว์ Decision Tree แบบโต้ตอบ
+แก้ไขข้อผิดพลาดงานวิจัยวิชาการ
+6G Edge AI Orchestration Clarification
+Holdout Extraction ในงานวิจัย
+เฉลยข้อสอบ Midterm Network
+Q2->Q8 Quantisation Accuracy Analysis
+แก้ไข Paper Reject เพื่อตีพิมพ์ Q1
+Network Orchestration: AI, LLMs, SLMs
+สร้างข้อสอบ Midterm อัตนัย
+ออกแบบโลโก้ตกปลา ผีแดงแมนยู
+คณิตศาสตร์ 3D Graphics สำหรับนักพัฒนาเกม
+หลักสูตร Wireless Network EVE-NG Cooja
+หลักสูตร EVE-NG, Cooja และ Capstone
+เลือกโปรแกรมจำลองเครือข่ายไร้สาย
+การสร้างคำถามวิจัย SLR และข้อสอบ
+วิเคราะห์สเปกตรัม Wi-Fi 2.4 GHz
+ช่วยทำข้อสอบ Midterm 3 ชั่วโมงให้หน่อย โดยถ้าข้อไหนใช้รูปให้ค้นจาก Internet เพื่อใช้ประกอบคำถาม โดยระบุอ้างอิงลิงค์ไว้ด้วย
+สร้างข้อสอบ Midterm ระบบเสมือน
+Linux Command and Scripting Exercises
+Advanced Digital Logic Design Exam
+ข้อสอบปฏิบัติโครงสร้างพื้นฐานไอที
+ออกข้อสอบ Network Operating System
+ออกแบบข้อสอบ Digital System Design
+ออกข้อสอบอัตนัยวิศวกรรมคอมพิวเตอร์
+การเรียนรู้แบบสหพันธ์ทนควอนตัม
+การแปลเอกสารวิจัย RoQ-FL
+การประเมิน SLM สำหรับ 6G Edge
+Reviewer Feedback on RoQ-FL
+AUN-QA Criteria 3, 4, 5 Review
+วารสาร CS พิจารณาเร็ว ค่าใช้จ่ายต่ำ
+การจัดอันดับวารสาร: Q2 หรือ Q3
+Conversation with Gemini
+
+ช่วยทำ html page 1 หน้า เพื่อแสดงการทำงานของ Decision Tree โดยทำเป็นเกมหรือกิจกรรม แล้ว virtualize ให้นักศึกษาลองเล่นด้ว Decision Tree เพื่อให้นักศึกษาที่ไม่มีความรู้พื้นฐานเข้าใจ Decision Tree มากขึ้น
+Machine Learning for Network and Cloud Engineering
+Custom Gem
+
+สวัสดีครับ! ในฐานะผู้เชี่ยวชาญด้าน Machine Learning for Network and Cloud Engineering ผมมักจะใช้ Decision Tree (ต้นไม้ตัดสินใจ) ในการสอน AI ให้แยกแยะว่า "Traffic ที่เข้ามาในระบบ Cloud เป็นผู้ใช้งานปกติ หรือเป็น Hacker (DDoS)"
+
+แต่เพื่อให้พื้นฐานแน่นและเข้าใจง่ายที่สุดสำหรับผู้เริ่มต้น ผมได้เตรียม Single HTML Page ที่จำลองการทำงานของ Decision Tree ผ่าน "เกมทายสัตว์" มาให้ครับ
+
+เมื่อนักศึกษาลองเล่น พวกเขาจะเห็นภาพว่า AI ตัดสินใจเลือกคำตอบสุดท้าย (Leaf) โดยการคัดกรองผ่านเงื่อนไข (Node) ทีละขั้นได้อย่างไรครับ
+
+คุณสามารถ Copy โค้ดด้านล่างนี้ไปบันทึกเป็นไฟล์ชื่อ decision_tree.html แล้วเปิดด้วย Web Browser (เช่น Chrome, Edge, Safari) เพื่อให้นักศึกษาลองเล่นได้เลยครับ!
+HTML
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Decision Tree - เกมทายสัตว์</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a;
+            --danger: #dc2626;
+            --bg: #f8fafc;
+            --node-bg: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 30px;
+            max-width: 600px;
+        }
+
+        /* ส่วนของเกมทายใจ (Question Box) */
+        .game-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            margin-bottom: 40px;
+            width: 100%;
+            max-width: 500px;
+            min-height: 180px;
+        }
+
+        #question-text {
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-bottom: 25px;
+            color: var(--text);
+        }
+
+        .btn-group {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        button {
+            padding: 12px 30px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+            font-weight: bold;
+        }
+
+        button:hover {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
+
+        .btn-yes { background-color: var(--success); color: white; }
+        .btn-no { background-color: var(--danger); color: white; }
+        .btn-reset { background-color: var(--primary); color: white; display: none; margin: 0 auto;}
+
+        /* ส่วนของการแสดงผล Decision Tree */
+        .tree-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 30px;
+            width: 100%;
+            max-width: 900px;
+            overflow-x: auto;
+            padding-bottom: 20px;
+        }
+
+        .level {
+            display: flex;
+            justify-content: space-around;
+            width: 100%;
+            gap: 15px;
+        }
+
+        .node {
+            background: var(--node-bg);
+            border: 2px solid #cbd5e1;
+            padding: 15px;
+            border-radius: 8px;
+            width: 120px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 0.9rem;
+            opacity: 0.4;
+            transition: all 0.4s ease;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .node.leaf {
+            border-style: dashed;
+            border-color: #94a3b8;
+        }
+
+        /* State Classes */
+        .node.active {
+            opacity: 1;
+            border-color: var(--primary);
+            background-color: #eff6ff;
+            transform: scale(1.1);
+            box-shadow: 0 0 15px rgba(37, 99, 235, 0.4);
+        }
+
+        .node.passed {
+            opacity: 0.8;
+            border-color: var(--success);
+            background-color: #f0fdf4;
+        }
+
+        .node.result {
+            opacity: 1;
+            border-color: #f59e0b;
+            background-color: #fffbeb;
+            color: #d97706;
+            transform: scale(1.2);
+            box-shadow: 0 0 20px rgba(245, 158, 11, 0.5);
+        }
+
+        .spacer {
+            width: 120px; /* ใช้สำหรับจัด Layout ให้ตรงกัน */
+        }
+        
+        #explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background: #e0f2fe;
+            border-left: 4px solid var(--primary);
+            border-radius: 0 8px 8px 0;
+            display: none;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>🌳 เล่นเกมกับ Decision Tree</h1>
+    <div class="subtitle">
+        ลองตอบคำถามด้านล่าง แล้วสังเกตว่า AI ใช้เงื่อนไข (Conditions) ในการแยกแยะข้อมูลเพื่อหาคำตอบสุดท้าย (Leaf Node) ได้อย่างไร!
+    </div>
+
+    <!-- ส่วนที่ใช้ตอบคำถาม -->
+    <div class="game-container">
+        <div id="question-text">มันมี "ปีก" ใช่หรือไม่?</div>
+        
+        <div class="btn-group" id="action-buttons">
+            <button class="btn-yes" onclick="answer('yes')">✅ ใช่</button>
+            <button class="btn-no" onclick="answer('no')">❌ ไม่ใช่</button>
+        </div>
+        
+        <button class="btn-reset" id="reset-btn" onclick="resetGame()">🔄 เริ่มเล่นใหม่</button>
+        
+        <div id="explanation"></div>
+    </div>
+
+    <!-- ส่วนจำลองต้นไม้ตัดสินใจ (Visualized Tree) -->
+    <div class="tree-container">
+        <!-- ชั้นที่ 1 (Root Node) -->
+        <div class="level">
+            <div id="node-1" class="node active">Q1: มีปีก?</div>
+        </div>
+
+        <!-- ชั้นที่ 2 -->
+        <div class="level">
+            <div id="node-2" class="node">Q2: ว่ายน้ำได้?</div>
+            <div id="node-3" class="node">Q3: มี 4 ขา?</div>
+        </div>
+
+        <!-- ชั้นที่ 3 -->
+        <div class="level">
+            <div id="leaf-penguin" class="node leaf">🐧 เพนกวิน</div>
+            <div id="leaf-eagle" class="node leaf">🦅 นกอินทรี</div>
+            <div id="node-4" class="node">Q4: ร้องเหมียว?</div>
+            <div id="leaf-snake" class="node leaf">🐍 งู</div>
+        </div>
+
+        <!-- ชั้นที่ 4 -->
+        <div class="level">
+            <div class="spacer"></div>
+            <div class="spacer"></div>
+            <div id="leaf-cat" class="node leaf">🐱 แมว</div>
+            <div id="leaf-dog" class="node leaf">🐶 สุนัข</div>
+        </div>
+    </div>
+
+    <script>
+        // โครงสร้างของ Decision Tree (State Machine)
+        const treeData = {
+            1: { text: 'สัตว์ตัวนี้มี "ปีก" ใช่หรือไม่?', yes: 2, no: 3, id: 'node-1' },
+            2: { text: 'มันสามารถ "ว่ายน้ำ" ได้เก่งใช่หรือไม่?', yes: 'penguin', no: 'eagle', id: 'node-2' },
+            3: { text: 'มันมี "4 ขา" ใช่หรือไม่?', yes: 4, no: 'snake', id: 'node-3' },
+            4: { text: 'มันร้อง "เหมียวๆ" ใช่หรือไม่?', yes: 'cat', no: 'dog', id: 'node-4' }
+        };
+
+        // ข้อมูลของผลลัพธ์ (Leaf Nodes)
+        const leavesData = {
+            'penguin': { name: '🐧 เพนกวิน', id: 'leaf-penguin' },
+            'eagle': { name: '🦅 นกอินทรี', id: 'leaf-eagle' },
+            'cat': { name: '🐱 แมว', id: 'leaf-cat' },
+            'dog': { name: '🐶 สุนัข', id: 'leaf-dog' },
+            'snake': { name: '🐍 งู', id: 'leaf-snake' }
+        };
+
+        let currentNode = 1;
+        let pathTaken = []; // เก็บประวัติการตอบคำถามเพื่อนำไปอธิบาย
+
+        function answer(choice) {
+            const nodeInfo = treeData[currentNode];
+            
+            // เปลี่ยนสถานะ Node ปัจจุบันให้เป็น Passed (ผ่านแล้ว)
+            document.getElementById(nodeInfo.id).classList.remove('active');
+            document.getElementById(nodeInfo.id).classList.add('passed');
+
+            // บันทึก path
+            pathTaken.push(`${nodeInfo.text} -> <b>${choice === 'yes' ? 'ใช่' : 'ไม่ใช่'}</b>`);
+
+            // หา Node ถัดไป
+            const nextStep = nodeInfo[choice];
+
+            if (typeof nextStep === 'number') {
+                // ยังเป็น Node คำถามต่อไป
+                currentNode = nextStep;
+                document.getElementById('question-text').innerText = treeData[currentNode].text;
+                
+                // Highlight Node ถัดไป
+                document.getElementById(treeData[currentNode].id).classList.add('active');
+            } else {
+                // ไปถึง Leaf Node (ผลลัพธ์)
+                showResult(nextStep);
+            }
+        }
+
+        function showResult(leafKey) {
+            const leafInfo = leavesData[leafKey];
+            
+            // ซ่อนปุ่มกด ใช่/ไม่ใช่
+            document.getElementById('action-buttons').style.display = 'none';
+            document.getElementById('reset-btn').style.display = 'block';
+            
+            // แสดงคำตอบ
+            document.getElementById('question-text').innerHTML = `🎉 AI ทายว่าสัตว์ตัวนั้นคือ: <br><span style="font-size: 2.5rem; color: #f59e0b;">${leafInfo.name}</span>`;
+            
+            // Highlight ผลลัพธ์ใน Tree
+            document.getElementById(leafInfo.id).classList.add('result');
+
+            // แสดงคำอธิบาย (Explainable AI Concept)
+            const explanationDiv = document.getElementById('explanation');
+            explanationDiv.style.display = 'block';
+            explanationDiv.innerHTML = `<strong>🤖 ทำไม AI ถึงคิดว่าเป็นสิ่งนี้? (Decision Path)</strong><br>` 
+                                     + pathTaken.join('<br>');
+        }
+
+        function resetGame() {
+            currentNode = 1;
+            pathTaken = [];
+
+            // Reset UI
+            document.getElementById('action-buttons').style.display = 'flex';
+            document.getElementById('reset-btn').style.display = 'none';
+            document.getElementById('explanation').style.display = 'none';
+            document.getElementById('question-text').innerText = treeData[currentNode].text;
+
+            // Reset Tree Visualization
+            const allNodes = document.querySelectorAll('.node');
+            allNodes.forEach(node => {
+                node.classList.remove('active', 'passed', 'result');
+            });
+            
+            // Start at root
+            document.getElementById(treeData[1].id).classList.add('active');
+        }
+    </script>
+</body>
+</html>
+
+💡 จุดเด่นของเครื่องมือนี้ที่เหมาะกับนักศึกษา:
+
+    Interactive Learning: นักศึกษาได้กดตอบคำถามเอง (Active Learning)
+
+    Visual Flow (กล่องไฟกระพริบ): เมื่อกดตอบ กล่องข้อความ (Node) ด้านล่างจะสว่างขึ้นตามเส้นทาง (Path) เพื่อให้นักศึกษาเห็นภาพว่า "คอมพิวเตอร์เดินทางผ่านเงื่อนไข (If-Else) อย่างไร"
+
+    Explainable AI (XAI): เมื่อถึงคำตอบสุดท้าย ระบบจะมีกล่องสรุปให้ดูว่า ทำไมระบบถึงทายว่าเป็นสัตว์ตัวนี้ (เช่น มีปีก -> ใช่, ว่ายน้ำได้ -> ใช่ จึงสรุปว่าเป็น "เพนกวิน") ซึ่งเป็นหัวใจหลักของความน่าเชื่อถือในโมเดล Decision Tree ครับ
+
+    No Dependencies: เขียนด้วย HTML, CSS และ Vanilla JS ล้วนๆ ไม่ต้องต่ออินเทอร์เน็ตเพื่อดึง Library เพิ่มเติม สามารถโหลดขึ้นระบบ E-learning ของมหาวิทยาลัยได้ทันทีครับ
+
+เราจะเอาไปไว้ใน github อย่างไร เพื่อให้ศึกษากดไฟล์แล้วประมวลผลที่ browser ได้เลย
+Machine Learning for Network and Cloud Engineering
+Custom Gem
+
+วิธีที่ง่ายที่สุดและฟรีในการทำให้ไฟล์ HTML ประมวลผลบน Web Browser ได้เลยผ่าน GitHub คือการใช้ฟีเจอร์ที่เรียกว่า GitHub Pages ครับ
+
+เมื่อทำเสร็จแล้ว คุณจะได้ Link URL ส่งให้นักศึกษากดผ่านมือถือหรือคอมพิวเตอร์เพื่อเล่นได้ทันที โดยไม่ต้องดาวน์โหลดไฟล์ครับ
+
+นี่คือขั้นตอนการทำแบบ Step-by-Step ครับ:
+🛠️ ขั้นตอนที่ 1: เตรียมไฟล์ให้พร้อม
+
+เพื่อความง่ายและให้ URL ออกมาสวยงาม แนะนำให้เปลี่ยนชื่อไฟล์จาก decision_tree.html เป็น index.html (เวลานักศึกษากด Link จะได้ไม่ต้องพิมพ์ชื่อไฟล์ต่อท้าย)
+📁 ขั้นตอนที่ 2: สร้าง Repository บน GitHub
+
+    สมัครใช้งานและ Login เข้าสู่เว็บไซต์ GitHub
+
+    กดปุ่ม New (สีเขียว) หรือเครื่องหมาย + มุมขวาบน แล้วเลือก New repository
+
+    ตั้งชื่อ Repository name เช่น decision-tree-game
+
+    เลือกสถานะเป็น Public (สำคัญมาก เพื่อให้นักศึกษาเข้าถึงได้)
+
+    เลื่อนลงมาด้านล่างสุด แล้วกดปุ่ม Create repository
+
+⬆️ ขั้นตอนที่ 3: อัปโหลดไฟล์ index.html
+
+    ในหน้า Repository ที่เพิ่งสร้างเสร็จ ให้คลิกที่ uploading an existing file (ลิงก์เล็กๆ ในหน้าจอ)
+
+    ลากไฟล์ index.html มาวางในกรอบที่ระบุไว้
+
+    เลื่อนลงมาด้านล่างที่หัวข้อ Commit changes ให้กดปุ่ม Commit changes (สีเขียว)
+
+🌐 ขั้นตอนที่ 4: เปิดใช้งาน GitHub Pages (ส่วนสำคัญ!)
+
+    ในหน้า Repository ของคุณ ให้คลิกที่แท็บ Settings (รูปฟันเฟือง ด้านบนขวา)
+
+    ดูที่เมนูด้านซ้ายมือ เลื่อนหาหัวข้อ Code and automation แล้วคลิกคำว่า Pages
+
+    ที่หัวข้อ Build and deployment > Source: ให้เลือกเป็น Deploy from a branch
+
+    ที่หัวข้อ Branch: ให้เปลี่ยนจาก None เป็น main (หรือ master) แล้วกดปุ่ม Save
+
+🎉 ขั้นตอนที่ 5: รอรับ Link ไปส่งให้นักศึกษา
+
+    หลังจากกด Save ให้รอประมาณ 1-2 นาที
+
+    ลอง Refresh หน้าเว็บดู ด้านบนสุดของหน้า Pages จะมีข้อความแสดงขึ้นมาว่า:
+
+        "Your site is live at https://[ชื่อusernameของคุณ].github.io/decision-tree-game/"
+
+    คุณสามารถ Copy Link นี้ไปแปะในกลุ่มเรียน, สไลด์สอน หรือระบบ E-learning ให้นักศึกษากดเล่นได้เลยครับ!
+
+    💡 ข้อดีเพิ่มเติม: หากในอนาคตคุณต้องการแก้ไขโค้ด (เช่น เพิ่มคำถาม เปลี่ยนชื่อสัตว์) คุณสามารถเข้าไปกดแก้ไขไฟล์ index.html ใน GitHub ได้เลยโดยตรง แล้ว GitHub Pages จะอัปเดตหน้าเว็บอัตโนมัติภายในไม่กี่นาที โดยที่นักศึกษายังคงใช้ Link เดิมได้ครับ
+
+ขอแบบฝึกแบบฝึกหัดให้นักศึกษาเรียนรู้พารามิเตอร์ต่างๆ สำหรับการทำ DecisionTree และอธิบายอย่างละเอียดถึงพารามิเตอร์แต่ละตัว โดยทำให้นักศึกษาที่ไม่มีความรู้เข้าใจง่ายๆ โดยหน้าเพจดังกล่าวทำให้นักศึกษาปรับค่าต่างๆ ได้ง่ายๆ โดยไฟล์ชื่อ DecisionTree_Juning.html
+Machine Learning for Network and Cloud Engineering
+Custom Gem
+
+เพื่อให้การเรียนรู้เรื่อง Parameter ใน Decision Tree เป็นเรื่องสนุกและเข้าใจง่าย ผมได้ออกแบบแบบฝึกหัด Interactive HTML ที่จำลองการ "Tuning" (ปรับจูน) พารามิเตอร์ครับ
+
+ในหน้านี้ นักศึกษาจะสามารถเลื่อนแถบ Slider เพื่อปรับค่า Hyperparameters หลัก 3 ตัว แล้วดูการเปลี่ยนแปลงของ "ต้นไม้" ที่วาดออกมาแบบ Real-time พร้อมคำอธิบายภาษาไทยที่ใช้การเปรียบเทียบให้เข้าใจง่ายที่สุด
+
+คุณสามารถคัดลอกโค้ดทั้งหมดนี้ ไปบันทึกเป็นไฟล์ชื่อ DecisionTree_Juning.html (หรือ Tuning) แล้วให้นักศึกษาเปิดบนเบราว์เซอร์ได้เลยครับ
+HTML
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decision Tree Tuning - แบบฝึกหัดปรับจูนพารามิเตอร์</title>
+    <style>
+        :root {
+            --primary: #3b82f6;
+            --secondary: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --bg: #f3f4f6;
+            --card: #ffffff;
+            --text: #1f2937;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        /* กล่องควบคุม (Control Panel) */
+        .control-panel {
+            flex: 1;
+            min-width: 300px;
+            background: var(--card);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .param-group {
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .param-group:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+
+        .param-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .param-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            color: var(--primary);
+        }
+
+        .param-value {
+            background: var(--primary);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .param-desc {
+            font-size: 0.9rem;
+            color: #4b5563;
+            margin-bottom: 10px;
+            line-height: 1.5;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            cursor: pointer;
+        }
+
+        /* กล่องแสดงต้นไม้ (Tree Visualization) */
+        .visualization-panel {
+            flex: 2;
+            min-width: 600px;
+            background: var(--card);
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            overflow-x: auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .status-bar {
+            width: 100%;
+            padding: 10px;
+            background: #eff6ff;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            text-align: center;
+            font-weight: bold;
+            color: #1e40af;
+        }
+
+        /* โครงสร้าง CSS ของ Tree */
+        .tree-node {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin: 0 10px;
+        }
+
+        .node-box {
+            background: white;
+            border: 2px solid var(--primary);
+            border-radius: 8px;
+            padding: 10px;
+            text-align: center;
+            min-width: 100px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            position: relative;
+            z-index: 2;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+        }
+
+        .node-box.leaf-depth { border-color: var(--danger); background: #fef2f2; }
+        .node-box.leaf-split { border-color: var(--warning); background: #fffbeb; }
+        .node-box.leaf-leaf { border-color: var(--secondary); background: #f0fdf4; }
+
+        .node-children {
+            display: flex;
+            justify-content: center;
+            position: relative;
+        }
+
+        /* เส้นเชื่อม Node */
+        .node-children::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            left: 25%;
+            right: 25%;
+            height: 2px;
+            background: #cbd5e1;
+            z-index: 1;
+        }
+        
+        .tree-node > .node-children > .tree-node::before {
+            content: '';
+            position: absolute;
+            top: -20px;
+            width: 2px;
+            height: 20px;
+            background: #cbd5e1;
+            z-index: 1;
+        }
+
+        .legend {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            font-size: 0.85rem;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .color-box { width: 15px; height: 15px; border-radius: 4px; border: 2px solid; }
+
+    </style>
+</head>
+<body>
+
+    <h1>🌳 เรียนรู้พารามิเตอร์ของ Decision Tree</h1>
+    <div class="subtitle">จำลองข้อมูล 100 Data Points (สมมติว่าเป็น Network Traffic: ปกติ vs โจมตี) ลองปรับค่าดูว่าต้นไม้เปลี่ยนไปอย่างไร</div>
+
+    <div class="container">
+        <!-- Control Panel -->
+        <div class="control-panel">
+            <h2>⚙️ ตัวแปร (Hyperparameters)</h2>
+            
+            <div class="param-group">
+                <div class="param-header">
+                    <span class="param-name">max_depth</span>
+                    <span class="param-value" id="val-depth">3</span>
+                </div>
+                <div class="param-desc">
+                    <strong>ความลึกสูงสุดของต้นไม้:</strong> "จำนวนคำถามต่อเนื่องที่ AI ควรถาม"<br>
+                    <small>📌 หากค่าน้อยไป (1-2) AI จะแยกข้อมูลไม่ละเอียด (Underfitting)<br>📌 หากค่ามากไป ต้นไม้จะจำรายละเอียดหยุมหยิมมากเกินไป (Overfitting)</small>
+                </div>
+                <input type="range" id="slider-depth" min="1" max="5" value="3" oninput="updateTree()">
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span class="param-name">min_samples_split</span>
+                    <span class="param-value" id="val-split">20</span>
+                </div>
+                <div class="param-desc">
+                    <strong>ขั้นต่ำที่จะแบ่งต่อ:</strong> "จำนวนข้อมูลในกลุ่ม ต้องมีอย่างน้อยกี่ตัว ถึงจะยอมตั้งคำถามแบ่งกลุ่มต่อ"<br>
+                    <small>📌 ช่วยหยุดต้นไม้ไม่ให้แตกกิ่งก้านสาขาในกลุ่มข้อมูลที่เล็กเกินไปแล้ว</small>
+                </div>
+                <input type="range" id="slider-split" min="2" max="50" value="20" step="2" oninput="updateTree()">
+            </div>
+
+            <div class="param-group">
+                <div class="param-header">
+                    <span class="param-name">min_samples_leaf</span>
+                    <span class="param-value" id="val-leaf">5</span>
+                </div>
+                <div class="param-desc">
+                    <strong>ขั้นต่ำของผลลัพธ์:</strong> "คำตอบสุดท้าย (Leaf) ต้องมีข้อมูลอ้างอิงอย่างน้อยกี่ตัว"<br>
+                    <small>📌 ป้องกันไม่ให้ AI สร้างกฎขึ้นมาเพื่อตัดสินข้อมูลแค่ 1-2 ตัว (กัน Noise)</small>
+                </div>
+                <input type="range" id="slider-leaf" min="1" max="30" value="5" oninput="updateTree()">
+            </div>
+        </div>
+
+        <!-- Visualization Panel -->
+        <div class="visualization-panel">
+            <div class="status-bar" id="status-text">
+                กำลังวาดต้นไม้จำลอง...
+            </div>
+            
+            <div id="tree-container">
+                <!-- ต้นไม้จะถูกสร้างที่นี่ด้วย JavaScript -->
+            </div>
+
+            <div class="legend">
+                <div class="legend-item"><div class="color-box" style="border-color: var(--primary); background: white;"></div> โหนดคำถาม (ยังแบ่งต่อ)</div>
+                <div class="legend-item"><div class="color-box" style="border-color: var(--danger); background: #fef2f2;"></div> หยุดเพราะชน Max Depth</div>
+                <div class="legend-item"><div class="color-box" style="border-color: var(--warning); background: #fffbeb;"></div> หยุดเพราะข้อมูล < min_split</div>
+                <div class="legend-item"><div class="color-box" style="border-color: var(--secondary); background: #f0fdf4;"></div> หยุดเพราะถ้าแบ่งต่อจะ < min_leaf</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // เริ่มต้นด้วยข้อมูลสมมติ 100 ตัว
+        const totalSamples = 100;
+
+        function updateTree() {
+            // อ่านค่าจาก Sliders
+            const maxDepth = parseInt(document.getElementById('slider-depth').value);
+            const minSplit = parseInt(document.getElementById('slider-split').value);
+            const minLeaf = parseInt(document.getElementById('slider-leaf').value);
+
+            // อัปเดตตัวเลขแสดงผล
+            document.getElementById('val-depth').innerText = maxDepth;
+            document.getElementById('val-split').innerText = minSplit;
+            document.getElementById('val-leaf').innerText = minLeaf;
+
+            // อัปเดตข้อความอธิบายสถานะ
+            let statusMsg = `ตอนนี้ต้นไม้ลึกได้มากสุด ${maxDepth} ชั้น, ต้องมีข้อมูล >= ${minSplit} ถึงจะแบ่งต่อ, และห้ามสร้างผลลัพธ์ที่ข้อมูล < ${minLeaf}`;
+            document.getElementById('status-text').innerText = statusMsg;
+
+            // สร้างโครงสร้างต้นไม้จำลอง
+            const treeData = buildTreeSim(totalSamples, 1, maxDepth, minSplit, minLeaf);
+            
+            // วาดต้นไม้ลงจอ
+            const treeHtml = renderTree(treeData);
+            document.getElementById('tree-container').innerHTML = treeHtml;
+        }
+
+        // ฟังก์ชันจำลองการทำงานของอัลกอริทึม Decision Tree
+        function buildTreeSim(samples, currentDepth, maxDepth, minSplit, minLeaf) {
+            // เงื่อนไขที่ 1: ชน Max Depth -> บังคับหยุดเป็น Leaf
+            if (currentDepth > maxDepth) {
+                return { isLeaf: true, samples: samples, reason: 'leaf-depth', msg: 'ชน Max Depth' };
+            }
+
+            // เงื่อนไขที่ 2: จำนวนข้อมูลน้อยกว่า min_samples_split -> ไม่ตั้งคำถามต่อ หยุดเป็น Leaf
+            if (samples < minSplit) {
+                return { isLeaf: true, samples: samples, reason: 'leaf-split', msg: 'ข้อมูลน้อยกว่า Split' };
+            }
+
+            // สมมติว่า AI ตั้งคำถามและแบ่งข้อมูลออกเป็น 2 กลุ่ม (แบ่งแบบไม่เท่ากัน 60% / 40%)
+            const leftSamples = Math.floor(samples * 0.6);
+            const rightSamples = samples - leftSamples;
+
+            // เงื่อนไขที่ 3: ถ้าแบ่งแล้ว ลูกฝั่งใดฝั่งหนึ่งมีข้อมูลน้อยกว่า min_samples_leaf -> ห้ามแบ่ง ให้หยุดเป็น Leaf เลย
+            if (leftSamples < minLeaf || rightSamples < minLeaf) {
+                return { isLeaf: true, samples: samples, reason: 'leaf-leaf', msg: 'กันข้อมูลน้อยกว่า Leaf' };
+            }
+
+            // ถ้าผ่านทุกเงื่อนไข -> เป็น Node คำถาม และสร้างลูกหลานต่อไป
+            return {
+                isLeaf: false,
+                samples: samples,
+                depth: currentDepth,
+                left: buildTreeSim(leftSamples, currentDepth + 1, maxDepth, minSplit, minLeaf),
+                right: buildTreeSim(rightSamples, currentDepth + 1, maxDepth, minSplit, minLeaf)
+            };
+        }
+
+        // ฟังก์ชันแปลงข้อมูลเป็น HTML
+        function renderTree(node) {
+            if (node.isLeaf) {
+                return `
+                <div class="tree-node">
+                    <div class="node-box ${node.reason}">
+                        <strong>จบที่ Leaf</strong><br>
+                        ข้อมูล: ${node.samples}<br>
+                        <small style="color: #666;">${node.msg}</small>
+                    </div>
+                </div>`;
+            }
+
+            return `
+            <div class="tree-node">
+                <div class="node-box">
+                    <strong>ชั้นที่ ${node.depth}</strong><br>
+                    มีข้อมูล: ${node.samples}<br>
+                    <small>ตั้งคำถามแบ่งข้อมูล</small>
+                </div>
+                <div class="node-children">
+                    ${renderTree(node.left)}
+                    ${renderTree(node.right)}
+                </div>
+            </div>`;
+        }
+
+        // โหลดครั้งแรก
+        updateTree();
+    </script>
+</body>
+</html>
+
+💡 วิธีใช้งานสำหรับนักศึกษา (What they will learn)
+
+เมื่อนักศึกษาเปิดไฟล์นี้ จะพบกับแถบเลื่อน 3 ตัว ซึ่งอธิบายพฤติกรรมหลักดังนี้:
+
+    ลองเลื่อน max_depth (ความลึก):
+
+        หากตั้งเป็น 1 ต้นไม้จะถามแค่ข้อเดียวแล้วสรุปผลเลย (เห็น Node สั้นมาก)
+
+        หากตั้งเป็น 5 ต้นไม้จะยาวลงมาเรื่อยๆ (เสี่ยง Overfitting มากขึ้นถ้าข้อมูลมีน้อย)
+
+    ลองเลื่อน min_samples_split:
+
+        หากดันค่าไปสูงๆ (เช่น 40) จะสังเกตเห็นว่า แม้จะตั้ง max_depth ไว้ลึก 5 ชั้น แต่ต้นไม้จะหยุดโตเร็วมาก (กล่องสีเหลือง) เพราะกลุ่มข้อมูลถูกหั่นจนเหลือไม่ถึง 40 ตัว อัลกอริทึมจึงปฏิเสธการแบ่งต่อ
+
+    ลองเลื่อน min_samples_leaf:
+
+        หากตั้งไว้สูง (เช่น 20) อัลกอริทึมจะประเมินล่วงหน้าว่า "ถ้าหั่นครึ่งแล้วได้กลุ่มย่อยน้อยกว่า 20 ตัว จะไม่หั่นเด็ดขาด" (กล่องสีเขียว) ทำให้ปลายทางแต่ละ Node มีความน่าเชื่อถือสูงขึ้น ป้องกันการแยกกฎให้ข้อมูลส่วนน้อย (Noise)
+
+ระบบเขียนด้วย Logic การหั่นข้อมูล (split) แบบ Recursive คล้ายกับที่ Scikit-learn ทำงานจริงหลังบ้าน ทำให้นักศึกษาเห็นผลกระทบของ Parameter ที่สัมพันธ์กันแบบ Real-time ครับ
+
+ช่วยทำ html page 1 หน้า เพื่อแสดงการทำงานของ Random Forest โดยทำเป็นเกมหรือกิจกรรม แล้ว virtualize ให้นักศึกษาลองเล่นด้ว Random Forest เพื่อให้นักศึกษาที่ไม่มีความรู้พื้นฐานเข้าใจ Random Forest มากขึ้น
+
+
+
+ขอแบบฝึกแบบฝึกหัดให้นักศึกษาเรียนรู้พารามิเตอร์ต่างๆ สำหรับการทำ Random Forest และอธิบายอย่างละเอียดถึงพารามิเตอร์แต่ละตัว โดยทำให้นักศึกษาที่ไม่มีความรู้เข้าใจง่ายๆ โดยหน้าเพจดังกล่าวทำให้นักศึกษาปรับค่าต่างๆ ได้ง่ายๆ โดยไฟล์ชื่อ RandomForest_Tuning.html
+Machine Learning for Network and Cloud Engineering
+Custom Gem
+
+ไฟล์ของคุณพร้อมแล้วครับ
+HTML icon
+RandomForest_Tuning
+ HTML 
+
+ผมได้สร้างไฟล์ RandomForest_Tuning.html สำหรับกิจกรรมการเรียนรู้เรื่อง Random Forest มาให้เรียบร้อยครับ
+
+ในกิจกรรมนี้ ผมได้ออกแบบโดยใช้แนวคิด "สร้างคณะกรรมการ AI (Wisdom of the Crowd)" เพื่อให้นักศึกษาเข้าใจได้ง่ายขึ้น โดยผูกกับบริบทของวิชา Network Engineering คือการให้คณะกรรมการโหวตว่า Traffic ที่เข้ามานั้นเป็น "การใช้งานปกติ" หรือ "การโจมตีแบบ DDoS"
+💡 สิ่งที่นักศึกษาจะได้เรียนรู้จาก Interactive Page นี้:
+
+    n_estimators (จำนวนต้นไม้/กรรมการ):
+
+        ลองเลื่อนแถบ Slider เพื่อดูว่าเมื่อเพิ่มจำนวนต้นไม้ ภาพของป่าจะหนาแน่นขึ้น
+
+        เมื่อกดปุ่ม "ปล่อย Traffic" จะเห็นแอนิเมชันการทะยอยโหวต (เขียว หรือ แดง) ของแต่ละต้น หากต้นไม้เยอะ ผลรวมของการโหวต (แถบสีด้านบน) จะนิ่งและน่าเชื่อถือมากขึ้น
+
+    max_depth (ความลึกของแต่ละต้น):
+
+        เปรียบเสมือน "ระดับความซับซ้อน" ที่กรรมการแต่ละคนจำแนกข้อมูลได้
+
+        เมื่อนักศึกษาปรับค่านี้ ไอคอนต้นไม้จะเปลี่ยนจากต้นอ่อน (🌱) เป็นต้นไม้ธรรมดา (🌲) และต้นไม้ใหญ่ (🌳) เพื่อแสดงถึงความซับซ้อนของ Model
+
+    max_features (การสุ่มเปอร์เซ็นต์เบาะแส):
+
+        อธิบายเรื่อง Diversity (ความหลากหลาย) ซึ่งเป็นหัวใจหลักของ Random Forest
+
+        หากตั้งไว้ที่ 100% กรรมการทุกคนจะเห็นข้อมูลเหมือนกันหมด ทำให้โหวตไปในทิศทางเดียวกัน แต่ถ้าลด % ลง กรรมการแต่ละต้นจะสุ่มดูข้อมูลแค่บางส่วน (เช่น ดูแค่ Port หรือดูแค่ IP) ทำให้เกิดความแตกต่างทางความคิด ลดปัญหา Overfitting ได้ดีเยี่ยม
+
+คุณสามารถนำไฟล์นี้ไปให้นักศึกษาเปิดเล่นบน Browser หรือนำไปโฮสต์ไว้บน GitHub Pages แบบเดียวกับไฟล์ Decision Tree ก่อนหน้านี้ได้เลยครับ!
+
+ช่วยทำ
+
+html page 1 หน้า เพื่อแสดงการทำงานของ Random Forest
+
+โดยทำเป็นเกมหรือกิจกรรม แล้ว virtualize ให้นักศึกษาลองเล่นด้ว Random
+
+Forest เพื่อให้นักศึกษาที่ไม่มีความรู้พื้นฐานเข้าใจ Random Forest
+
+มากขึ้น
+
+
+
+ขออันนี้ก่อนครับ
+Machine Learning for Network and Cloud Engineering
+Custom Gem
+
+จัดให้ตามคำขอครับ! สำหรับอันนี้จะเป็น ส่วนของเกม/กิจกรรม (Game Activity) เพื่อให้นักศึกษาเข้าใจคอนเซ็ปต์การทำงานของ Random Forest แบบไม่ต้องแตะ Parameter เลยครับ
+
+ไฟล์ของคุณพร้อมแล้วครับ
+HTML icon
+RandomForest_Game
+ HTML 
+💡 แนะนำวิธีกระตุ้นนักศึกษาจากเกมนี้ (เกมจับผิดแฮกเกอร์):
+
+เกมนี้จำลองหลักการสำคัญที่สุดของ Random Forest คือ "Feature Bagging" (การสุ่มเลือกเบาะแส) โดยให้นักศึกษาลองสวมบทบาทเป็นคนกำหนดพฤติกรรม Network Traffic 3 อย่าง (ประเทศ, ความเร็ว, การเดารหัส)
+
+    ให้นักศึกษาลองเลือกข้อมูลที่ขัดแย้งกัน:
+
+        เช่น มาจาก ไทย (ปกติ) + ความเร็วช้า (ปกติ) + แต่ เดารหัสผิด 50 ครั้ง (แฮกเกอร์)
+
+    กดปุ่มส่งให้ AI ตรวจสอบ:
+
+        นักศึกษาจะเห็นว่า "กรรมการต้นที่ 1" (ที่เห็นแค่ ประเทศและความเร็ว แต่ไม่รู้เรื่องรหัสผ่าน) จะโหวตว่า "เป็นผู้ใช้ปกติ"
+
+        ในขณะที่ "กรรมการต้นที่ 2 และ 3" (ที่เห็นข้อมูลการเดารหัส) จะโหวตว่า "เป็นแฮกเกอร์"
+
+    ผลลัพธ์ (Majority Vote):
+
+        ถึงแม้จะมีกรรมการโหวตพลาดไป 1 ต้น แต่เสียงส่วนใหญ่ก็ยังชนะและโหวตว่าเป็นแฮกเกอร์ได้ถูกต้อง
+
+นี่คือวิธีอธิบายให้นักศึกษาเห็นภาพว่า ทำไม Random Forest ถึงเก่งและมีความเสถียรมากกว่า Decision Tree ต้นเดียว (Wisdom of the Crowd) ครับ! คุณสามารถนำไฟล์ HTML นี้ไปเปิดใน Browser เล่นบนโปรเจคเตอร์ในห้องเรียนได้เลยครับ
+
+
+Gemini is AI and can make mistakes.
+Designing the Game UI
+
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Random Forest Game - เกมจับผิดแฮกเกอร์</title>
+    <style>
+        :root {
+            --primary: #8b5cf6;
+            --secondary: #3b82f6;
+            --success: #22c55e;
+            --danger: #ef4444;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            color: var(--primary);
+            text-align: center;
+            margin-bottom: 5px;
+        }
+
+        .subtitle {
+            text-align: center;
+            color: #64748b;
+            margin-bottom: 30px;
+            max-width: 700px;
+            line-height: 1.5;
+        }
+
+        /* ส่วนกำหนดข้อมูล (Input) */
+        .scenario-box {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 600px;
+            margin-bottom: 30px;
+            border-top: 5px solid var(--secondary);
+        }
+
+        .scenario-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 15px;
+            text-align: center;
+            color: var(--secondary);
+        }
+
+        .feature-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #f1f5f9;
+            border-radius: 8px;
+        }
+
+        .feature-label { font-weight: bold; }
+        
+        select {
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #cbd5e1;
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .btn-start {
+            display: block;
+            width: 100%;
+            padding: 15px;
+            background-color: var(--primary);
+            color: white;
+            font-size: 1.2rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin-top: 20px;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .btn-start:hover { transform: scale(1.02); background-color: #7c3aed; }
+
+        /* ส่วนแสดงต้นไม้ (Forest) */
+        .forest-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            justify-content: center;
+            width: 100%;
+            max-width: 1000px;
+            margin-bottom: 30px;
+        }
+
+        .tree-card {
+            background: white;
+            padding: 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            width: 280px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            border: 2px solid #e2e8f0;
+            opacity: 0.5;
+            transition: all 0.5s;
+        }
+
+        .tree-card.active { opacity: 1; border-color: var(--primary); }
+
+        .tree-title { font-weight: bold; font-size: 1.1rem; margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+        .tree-logic { font-size: 0.9rem; color: #64748b; margin-bottom: 15px; text-align: center; height: 40px;}
+        
+        .vote-box {
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1.1rem;
+            background: #f1f5f9;
+            color: #94a3b8;
+            width: 100%;
+            text-align: center;
+            box-sizing: border-box;
+        }
+
+        .vote-normal { background: #f0fdf4; color: var(--success); border: 2px solid var(--success); }
+        .vote-hacker { background: #fef2f2; color: var(--danger); border: 2px solid var(--danger); }
+
+        /* ส่วนสรุปผล (Final Decision) */
+        .result-container {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            text-align: center;
+            width: 100%;
+            max-width: 600px;
+            display: none;
+            animation: popIn 0.5s ease-out;
+            border: 3px solid #cbd5e1;
+        }
+
+        @keyframes popIn {
+            0% { transform: scale(0.8); opacity: 0; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+
+        .result-title { font-size: 1.5rem; font-weight: bold; margin-bottom: 15px; }
+        .tally { font-size: 1.2rem; margin-bottom: 20px; color: #475569; }
+        .final-badge {
+            display: inline-block;
+            padding: 15px 40px;
+            border-radius: 30px;
+            font-size: 2rem;
+            font-weight: bold;
+            color: white;
+        }
+        .final-normal { background-color: var(--success); box-shadow: 0 0 20px rgba(34, 197, 94, 0.4); }
+        .final-hacker { background-color: var(--danger); box-shadow: 0 0 20px rgba(239, 68, 68, 0.4); }
+        
+        .explanation {
+            margin-top: 20px;
+            padding: 15px;
+            background: #eff6ff;
+            border-radius: 8px;
+            font-size: 0.95rem;
+            color: #1e3a8a;
+            text-align: left;
+        }
+
+    </style>
+</head>
+<body>
+
+    <h1>🌲 เกม: จับผิดแฮกเกอร์ด้วย Random Forest</h1>
+    <div class="subtitle">
+        ลองสร้าง <b>พฤติกรรมการใช้งานเครือข่าย (Network Traffic)</b> แล้วส่งให้ AI ตรวจสอบ <br>
+        ในระบบ Random Forest จะมี "ต้นไม้ตัดสินใจ (กรรมการ)" หลายต้น แต่ละต้นจะ <b>มองเห็นข้อมูลไม่เหมือนกัน</b> แล้วมาโหวตหาคำตอบที่ถูกต้องที่สุด!
+    </div>
+
+    <!-- ส่วนกำหนดข้อมูล (Input) -->
+    <div class="scenario-box">
+        <div class="scenario-title">👤 กำหนดพฤติกรรมผู้ใช้งาน (Features)</div>
+        
+        <div class="feature-row">
+            <span class="feature-label">🌍 1. ประเทศที่เข้าใช้งาน (IP Location)</span>
+            <select id="feat-location">
+                <option value="thailand">ไทย (ปกติ)</option>
+                <option value="russia">ต่างประเทศที่น่าสงสัย (Russia/North Korea)</option>
+            </select>
+        </div>
+
+        <div class="feature-row">
+            <span class="feature-label">⚡ 2. ความเร็วในการส่งข้อมูล (Request Rate)</span>
+            <select id="feat-speed">
+                <option value="slow">ช้าๆ ปกติ (1 ครั้ง/วิ)</option>
+                <option value="fast">เร็วผิดปกติ (1,000 ครั้ง/วิ)</option>
+            </select>
+        </div>
+
+        <div class="feature-row">
+            <span class="feature-label">🔑 3. การใส่รหัสผ่านผิด (Failed Logins)</span>
+            <select id="feat-login">
+                <option value="0">0 ครั้ง (ใส่ถูกเลย)</option>
+                <option value="50">50 ครั้ง (พยายามเดารหัส)</option>
+            </select>
+        </div>
+
+        <button class="btn-start" onclick="startGame()">🔍 ส่งให้คณะกรรมการตรวจสอบ!</button>
+    </div>
+
+    <!-- ส่วนแสดงต้นไม้ (Forest) -->
+    <div class="forest-container">
+        <!-- Tree 1 -->
+        <div class="tree-card" id="tree-1">
+            <div class="tree-title">🌲 กรรมการต้นที่ 1</div>
+            <div class="tree-logic">ดูข้อมูลแค่: <br><b>ประเทศ</b> และ <b>ความเร็ว</b></div>
+            <div class="vote-box" id="vote-1">รอผลโหวต...</div>
+        </div>
+
+        <!-- Tree 2 -->
+        <div class="tree-card" id="tree-2">
+            <div class="tree-title">🌲 กรรมการต้นที่ 2</div>
+            <div class="tree-logic">ดูข้อมูลแค่: <br><b>รหัสผ่านผิด</b> และ <b>ประเทศ</b></div>
+            <div class="vote-box" id="vote-2">รอผลโหวต...</div>
+        </div>
+
+        <!-- Tree 3 -->
+        <div class="tree-card" id="tree-3">
+            <div class="tree-title">🌲 กรรมการต้นที่ 3</div>
+            <div class="tree-logic">ดูข้อมูลแค่: <br><b>ความเร็ว</b> และ <b>รหัสผ่านผิด</b></div>
+            <div class="vote-box" id="vote-3">รอผลโหวต...</div>
+        </div>
+    </div>
+
+    <!-- ส่วนสรุปผล (Final Decision) -->
+    <div class="result-container" id="result-box">
+        <div class="result-title">🎯 มติเอกฉันท์ (Majority Vote)</div>
+        <div class="tally" id="tally-text">โหวตปกติ: 0 เสียง | โหวตแฮกเกอร์: 0 เสียง</div>
+        <div class="final-badge" id="final-badge">รอผล...</div>
+        
+        <div class="explanation">
+            <strong>💡 ความรู้เบื้องหลัง (How it works):</strong><br>
+            คุณสังเกตไหมว่า กรรมการแต่ละต้นพิจารณาจากข้อมูลคนละส่วนกัน? (บางต้นไม่รู้ด้วยซ้ำว่าใส่รหัสผิด)<br>
+            เทคนิคนี้เรียกว่า <b>Feature Bagging (การสุ่มเลือกเบาะแส)</b> เป็นหัวใจสำคัญของ Random Forest 
+            ที่ป้องกันไม่ให้ AI จำเจ และลดโอกาสที่ AI จะโดนข้อมูลหลอก (Overfitting) เพราะถ้ามีต้นไหนทายผิด ต้นอื่นๆ ที่เหลือก็จะช่วยดึงคะแนนเสียงกลับมาได้นั่นเอง!
+        </div>
+    </div>
+
+    <script>
+        function startGame() {
+            // อ่านค่าจาก User
+            const loc = document.getElementById('feat-location').value;
+            const speed = document.getElementById('feat-speed').value;
+            const login = document.getElementById('feat-login').value;
+
+            // Reset UI
+            document.getElementById('result-box').style.display = 'none';
+            for(let i=1; i<=3; i++) {
+                document.getElementById('tree-'+i).classList.remove('active');
+                const voteBox = document.getElementById('vote-'+i);
+                voteBox.className = 'vote-box';
+                voteBox.innerText = 'กำลังคิด...';
+            }
+
+            let votes = { normal: 0, hacker: 0 };
+
+            // อนิเมชั่นให้แต่ละต้นค่อยๆ โหวต (ห่างกันต้นละ 0.8 วินาที)
+            setTimeout(() => evaluateTree1(loc, speed, votes), 800);
+            setTimeout(() => evaluateTree2(loc, login, votes), 1600);
+            setTimeout(() => evaluateTree3(speed, login, votes), 2400);
+            
+            // สรุปผลตอนท้าย
+            setTimeout(() => showResult(votes), 3200);
+        }
+
+        function evaluateTree1(loc, speed, votes) {
+            const card = document.getElementById('tree-1');
+            const voteBox = document.getElementById('vote-1');
+            card.classList.add('active');
+
+            // Logic ของต้นที่ 1 (สมมติว่าเข้มงวดเรื่องความเร็วมาก)
+            let isHacker = false;
+            if (speed === 'fast') {
+                isHacker = true;
+            } else if (loc === 'russia' && speed === 'fast') {
+                isHacker = true;
+            }
+
+            applyVote(voteBox, isHacker, votes);
+        }
+
+        function evaluateTree2(loc, login, votes) {
+            const card = document.getElementById('tree-2');
+            const voteBox = document.getElementById('vote-2');
+            card.classList.add('active');
+
+            // Logic ของต้นที่ 2 (จับผิดเรื่องรหัสผ่านเป็นหลัก)
+            let isHacker = false;
+            if (login === '50') {
+                isHacker = true;
+            } else if (loc === 'russia' && login === '50') {
+                isHacker = true;
+            }
+
+            applyVote(voteBox, isHacker, votes);
+        }
+
+        function evaluateTree3(speed, login, votes) {
+            const card = document.getElementById('tree-3');
+            const voteBox = document.getElementById('vote-3');
+            card.classList.add('active');
+
+            // Logic ของต้นที่ 3 (ไม่สนใจประเทศ ดูแค่พฤติกรรม)
+            let isHacker = false;
+            if (speed === 'fast' && login === '50') {
+                isHacker = true;
+            } else if (login === '50') {
+                isHacker = true;
+            }
+
+            applyVote(voteBox, isHacker, votes);
+        }
+
+        function applyVote(element, isHacker, votes) {
+            if (isHacker) {
+                element.innerText = '🚨 โหวต: แฮกเกอร์!';
+                element.classList.add('vote-hacker');
+                votes.hacker++;
+            } else {
+                element.innerText = '✅ โหวต: ผู้ใช้ปกติ';
+                element.classList.add('vote-normal');
+                votes.normal++;
+            }
+        }
+
+        function showResult(votes) {
+            const resultBox = document.getElementById('result-box');
+            const tallyText = document.getElementById('tally-text');
+            const finalBadge = document.getElementById('final-badge');
+            
+            resultBox.style.display = 'block';
+            tallyText.innerText = `✅ โหวตปกติ: ${votes.normal} เสียง | 🚨 โหวตแฮกเกอร์: ${votes.hacker} เสียง`;
+
+            if (votes.hacker > votes.normal) {
+                finalBadge.innerText = '🚨 บล็อกการเชื่อมต่อ! (แฮกเกอร์)';
+                finalBadge.className = 'final-badge final-hacker';
+                resultBox.style.borderColor = 'var(--danger)';
+            } else {
+                finalBadge.innerText = '✅ อนุญาตให้ผ่าน (ผู้ใช้ปกติ)';
+                finalBadge.className = 'final-badge final-normal';
+                resultBox.style.borderColor = 'var(--success)';
+            }
+            
+            // เลื่อนหน้าจอลงมาให้เห็นผลสรุป
+            resultBox.scrollIntoView({ behavior: 'smooth', block: 'end' });
+        }
+    </script>
+</body>
+</html>
+
+RandomForest_Game.html
+Displaying RandomForest_Game.html.
